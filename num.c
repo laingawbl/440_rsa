@@ -144,11 +144,3 @@ void set(WORD p, WORD a, WORD *b){
    b[idx] &= ~(p << bit);
    b[idx] |=  (p << bit);
 }
-
-int main(){
-    WORD n[SZ_NUM];
-    zero(n);
-    add_wn(0x0F0F0F0F, n, n);
-    sub_wn(0x0F0F0F00, n, n);
-    return n[0];
-}
