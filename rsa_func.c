@@ -1,0 +1,199 @@
+#include "num.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+inline void die(const char * what){
+    printf("error: %s", what);
+    exit(1);
+}
+
+struct rsa_pub {
+    WORD n[SZ_NUM];
+    WORD e[SZ_NUM];
+};
+
+struct rsa_pri {
+    WORD n[SZ_NUM];
+    WORD d[SZ_NUM];
+};
+
+struct rsa_num {
+    WORD n[SZ_NUM];
+};
+
+bool zerop(WORD *a){
+    int i;
+    for (i = 0; i < SZ_NUM; i++){
+        if(a[i] != 0) return false;
+    }
+    return true;
+}
+
+WORD highbit(WORD *a){
+    int i, j;
+    for(i = SZ_NUM - 1; i >= 0; --i){
+        if(a[i] == 0){
+            continue;
+        }
+        for(j = W_SZ - 1; i >= 0; --i) {
+            if((a[i] >> j) & 1){
+                return (i * 8) + j;
+            }
+        }
+    }
+    return 0;
+}
+
+/*
+    returns:
+    a >= b       1
+    a <  b       0
+*/
+WORD gte(WORD *a, WORD *b){
+    WORD ha = highbit(a);
+    WORD hb = highbit(b);
+
+    if (ha > hb)
+        return 1;
+    if (hb < ha)
+        return 0;
+
+    int i;
+    WORD sa, sb;
+    for(i = ha - 1; i >= 0; --i){
+        WORD sa = sel(i, a);
+        WORD sb = sel(i, b);
+
+        if (sa > sb)
+            return 1;
+        if (sa < sb)
+            return 0;
+    }
+    return 0;
+}
+
+/*
+    a = 2^n,    n in Z
+    b = 2m + 1, m in Z
+*/
+void stein_gcd(WORD *a, WORD *b, WORD *u, WORD *v){
+    WORD alpha[SZ_NUM];
+    WORD beta[SZ_NUM];
+    WORD u[SZ_NUM];
+    WORD v[SZ_NUM];
+
+    copy(a, alpha);
+    copy(b, beta);
+    zero(u);
+    zero(v);
+
+    while !(zerop(a)){
+        lsr_b(a, 1, a);
+        if(sel(1, u) == 0){
+            lsr_b(u, 1, u);
+            lsr_b(v, 1, v);
+        }
+        else {
+            add_nn(u, beta, u);
+            lsr_b(u, 1, u);
+            lsr_b(v, 1, v);
+            add_nn(v, alpha, v);
+        }
+    }
+
+    copy(u, p);
+    copy(v, q);
+}
+
+void and(WORD *a, WORD *b, WORD *r){
+    int i;
+    for(i = 0; i < SZ_NUM; i++){
+        r[i] = a[i] & b[i];
+    }
+}
+
+void xor(WORD *a, WORD *b, WORD *r){
+    int i;
+    for(i = 0; i < SZ_NUM; i++){
+        r[i] = a[i] ^ b[i];
+    }
+}
+
+/*
+    Peasant Method multiplication
+    does NO bounds checking - you will get a garbage result if
+        highbit(a) + highbit(b) > MOD_MAX_SZ
+    but this will be communicated by returning the overflow as 1.
+*/
+WORD mul_nn(WORD *a, WORD *b, WORD *r){
+    WORD ha = highbit(a);
+    WORD c = 0;
+
+    int i;
+    WORD rz[SZ_NUM];
+    WORD bz[SZ_NUM];
+    copy(b, bz);
+
+    for(i = 0; i <= ha; i++){
+        if(sel(i, a)){
+            c |= add_nn(rz, bz, rz);
+        }
+        lsl_b(bz, 1, bz);
+    }
+    copy(rz, r);
+    return WORD;
+}
+
+/*
+    modular multiplication by logical shifts
+    adapted from the hardware division alg in Hacker's Delight, as suggested
+    by Henry Warren in his note on Montgomery multiplication, for long nums
+
+    this routine computes (hi || lo) / z, where hi, lo, z are all nums (so
+    (hi || lo) is a double-width num, e.g. if MOD_MAX_SZ is 4096, then it's
+    computing the division of an 8192-bit number by a 4096-bit one
+
+    upon completion:
+    - hi contains the residue (modulo z)
+    - lo contains the quotient
+*/
+void mod_dnum(WORD *hi, WORD *lo, WORD *m){
+    int i;
+    WORD t;
+    WORD u;
+
+    for(i = 0; i < MOD_MAX_SZ; i++){
+        // logical shift (hi || lo) left by one bit
+        // equivalent (hi || lo) * 2 (mod 2^MOD_MAX_SZ)
+        t = ((hi[SZ_NUM] >> W_SZ - 1) & 1);
+        u = ((lo[SZ_NUM] >> W_SZ - 1) & 1);
+        lsr_b(hi, 1, hi);
+        lsr_b(lo, 1, lo);
+        hi[0] &= u;
+        
+        hi[0] |= t;
+        if(gte(hi, m)){
+            set(0, u, hi);
+            sub_nn(hi, z, hi);
+            lo[0] &= 1;
+        }
+    }
+}
+
+WORD exp_nn(WORD *b, WORD *e, WORD *r){
+    
+}
+
+/* 
+    k must be valid, i.e.
+        k->n = pq, p,q in P-{2}
+        k->e in [3, n-1] in Z, s.t. 
+            gcd(e, \lambda(p)) === gcd(e, lcm(p-1, q-1)) = 1
+*/
+void rsaep(rsa_pub *k, WORD *m, WORD *c){
+    
+}
+
+void rsadp(rsa_pri *k, WORD *c, WORD *m){
+
+}
