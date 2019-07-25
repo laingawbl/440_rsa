@@ -5,7 +5,10 @@
 /*
     Functional, unoptimised implementation of the RSA encryption and
     decryption primitives (except for whatever simple improvements I couldn't
-    help but make, absent gprof or assembly examination)
+    help but make, absent gprof or assembly examination).
+
+    this version uses the square-and-multiply method, including a lookup
+    table for the window optimisation.
 
     the full RSA cryptosystem, including RSAES-OAEP, is NOT implemented!
     this code should NEVER be used for cryptographic purposes.
@@ -89,69 +92,72 @@ WORD mul_nn(WORD *a, WORD *b, WORD *r){
 }
 
 /*
-    modular multiplication by logical shifts
-    adapted from the hardware division alg in Hacker's Delight, as suggested
-    by Henry Warren in his note on Montgomery multiplication, for long nums
-
-    this routine computes (hi || lo) / z, where hi, lo, z are all nums (so
-    (hi || lo) is a double-width num, e.g. if MOD_MAX_SZ is 4096, then it's
-    computing the division of an 8192-bit number by a 4096-bit one
-
-    upon completion:
-    - hi contains the residue (modulo z)
-    - lo contains the quotient
+    The same method, but with correction modulo m at each step.
+    We shift the result rz to preserve the value of bz.
 */
-void mod_dnum(WORD *hi, WORD *lo, WORD *m){
+void mul_mo(WORD *a, WORD *b, WORD *m, WORD *r){
     int i;
-    WORD t;
-    WORD u;
+    WORD rz[SZ_NUM];
+    zero(rz);
 
-    for(i = 0; i < MOD_MAX_SZ; i++){
-        // logical shift (hi || lo) left by one bit
-        // equivalent (hi || lo) * 2 (mod 2^MOD_MAX_SZ)
-        t = ((hi[SZ_NUM] >> W_SZ - 1) & 1);
-        u = ((lo[SZ_NUM] >> W_SZ - 1) & 1);
-        lsr_b(hi, 1, hi);
-        lsr_b(lo, 1, lo);
-        hi[0] &= u;
+    WORD bz[SZ_NUM];
+    copy(b, bz);
+    
+    for(i = SZ_NUM - 1; i >= 0; --i){
         
-        hi[0] |= t;
-        if(gte(hi, m)){
-            set(0, u, hi);
-            sub_nn(hi, z, hi);
-            lo[0] &= 1;
+        lsl_b(rz, 1, rz);
+        if(gte(rz, m)){
+            sub_nn(rz, m, rz);
+        }
+        
+        if(sel(i, a)){
+            add_nn(rz, bz, rz);
+        }
+        if(gte(rz, m)){
+            sub_nn(rz, m, rz);
         }
     }
+    copy(rz, r);
 }
 
 /*
-    Montgomery-multiply two Montgomery-space big nums together.
-    here we have chosen the scale factor R = 2^MOD_MAX_SZ, so that
-    (a.) it is impossible to choose a modulus m > R; and
-    (b.) each num is of the form
+    note that
 
-        nR(mod m) = (n << MOD_MAX_SZ) (mod m)
-        = (n || 0) (mod m)
+          { x * (x^2) ^ (e-1 / 2), if n is odd
+    x^e = {
+          { (x^2) ^ (e / 2),       if n is even
 
-    and so can be calculated from a regular big num n by
-
-        mod_dnum(n, 0, m);
-
-    so mod_dnum is also our conversion into Montgomery space.
-    to convert back, note that
-    
-        mmul(n, 1) = ((nR)*1 / R) mod m
-        = n mod m
-
-    so mmul_nn is also our conversion out of Montgomery space.
-    note however that in the general case, also
-
-        mmul(n, R^2) = (nR)R / R mod m = nR mod m
-
-    but this requires precomputation of (R^2 mod m), which we don't do.
+    which is simplified here to repeatedly carrying out
+        
+        e odd ?
+            x_next *= x
+            e -= 1            
+        x *= x^2
+        e /= 2
+        
 */
-void mmul_nn(WORD *ma, WORD *mb, WORD *r){
-    
+void spow_nn(WORD *b, WORD *e, WORD *m, WORD *r){
+   
+   WORD z[SZ_NUM];
+   z[0] = 1;
+
+   int i = SZ_NUM - 1;
+
+   if(zerop(e)){
+        copy(z, r);
+        return;
+   }
+
+   while(highbit(e) > 0){
+        if(e[0] & 1){
+            mul_mo(b, z, m, z);
+            sub_nw(e, 1, e);
+        }
+        mul_mo(b, b, m, b);
+        lsl_b(e, 1, e);
+   }
+
+   mul_mo(b, z, r);
 }
 
 /* 
@@ -161,9 +167,9 @@ void mmul_nn(WORD *ma, WORD *mb, WORD *r){
             gcd(e, \lambda(p)) === gcd(e, lcm(p-1, q-1)) = 1
 */
 void rsaep(rsa_pub *k, WORD *m, WORD *c){
-    
+    spow_nn(m, k->e, k->n, c);    
 }
 
-void rsadp(rsa_pri *k, WORD *c, WORD *m){
-
+void rsadp(rsa_pri *k, WORD *c, WORD *m){ 
+    spow_nn(c, k->d, k->n, m);
 }
