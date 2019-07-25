@@ -144,3 +144,68 @@ void set(WORD p, WORD a, WORD *b){
    b[idx] &= ~(p << bit);
    b[idx] |=  (p << bit);
 }
+
+void and_nn(WORD *a, WORD *b, WORD *r){
+    int i;
+    for(i = 0; i < SZ_NUM; i++){
+        r[i] = a[i] & b[i];
+    }
+}
+
+void xor_nn(WORD *a, WORD *b, WORD *r){
+    int i;
+    for(i = 0; i < SZ_NUM; i++){
+        r[i] = a[i] ^ b[i];
+    }
+}
+
+WORD zerop(WORD *a){
+    int i;
+    for (i = 0; i < SZ_NUM; i++){
+        if(a[i] != 0) return 0;
+    }
+    return 1;
+}
+
+WORD highbit(WORD *a){
+    int i, j;
+    for(i = SZ_NUM - 1; i >= 0; --i){
+        if(a[i] == 0){
+            continue;
+        }
+        for(j = W_SZ - 1; i >= 0; --i) {
+            if((a[i] >> j) & 1){
+                return (i * 8) + j;
+            }
+        }
+    }
+    return 0;
+}
+
+/*
+    returns:
+    a >= b       1
+    a <  b       0
+*/
+WORD gte(WORD *a, WORD *b){
+    WORD ha = highbit(a);
+    WORD hb = highbit(b);
+
+    if (ha > hb)
+        return 1;
+    if (hb < ha)
+        return 0;
+
+    int i;
+    WORD sa, sb;
+    for(i = ha - 1; i >= 0; --i){
+        WORD sa = sel(i, a);
+        WORD sb = sel(i, b);
+
+        if (sa > sb)
+            return 1;
+        if (sa < sb)
+            return 0;
+    }
+    return 0;
+}

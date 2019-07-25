@@ -2,6 +2,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
+    Functional, unoptimised implementation of the RSA encryption and
+    decryption primitives (except for whatever simple improvements I couldn't
+    help but make, absent gprof or assembly examination)
+
+    the full RSA cryptosystem, including RSAES-OAEP, is NOT implemented!
+    this code should NEVER be used for cryptographic purposes.
+*/
+
 inline void die(const char * what){
     printf("error: %s", what);
     exit(1);
@@ -20,57 +29,6 @@ struct rsa_pri {
 struct rsa_num {
     WORD n[SZ_NUM];
 };
-
-bool zerop(WORD *a){
-    int i;
-    for (i = 0; i < SZ_NUM; i++){
-        if(a[i] != 0) return false;
-    }
-    return true;
-}
-
-WORD highbit(WORD *a){
-    int i, j;
-    for(i = SZ_NUM - 1; i >= 0; --i){
-        if(a[i] == 0){
-            continue;
-        }
-        for(j = W_SZ - 1; i >= 0; --i) {
-            if((a[i] >> j) & 1){
-                return (i * 8) + j;
-            }
-        }
-    }
-    return 0;
-}
-
-/*
-    returns:
-    a >= b       1
-    a <  b       0
-*/
-WORD gte(WORD *a, WORD *b){
-    WORD ha = highbit(a);
-    WORD hb = highbit(b);
-
-    if (ha > hb)
-        return 1;
-    if (hb < ha)
-        return 0;
-
-    int i;
-    WORD sa, sb;
-    for(i = ha - 1; i >= 0; --i){
-        WORD sa = sel(i, a);
-        WORD sb = sel(i, b);
-
-        if (sa > sb)
-            return 1;
-        if (sa < sb)
-            return 0;
-    }
-    return 0;
-}
 
 /*
     a = 2^n,    n in Z
@@ -103,20 +61,6 @@ void stein_gcd(WORD *a, WORD *b, WORD *u, WORD *v){
 
     copy(u, p);
     copy(v, q);
-}
-
-void and(WORD *a, WORD *b, WORD *r){
-    int i;
-    for(i = 0; i < SZ_NUM; i++){
-        r[i] = a[i] & b[i];
-    }
-}
-
-void xor(WORD *a, WORD *b, WORD *r){
-    int i;
-    for(i = 0; i < SZ_NUM; i++){
-        r[i] = a[i] ^ b[i];
-    }
 }
 
 /*
