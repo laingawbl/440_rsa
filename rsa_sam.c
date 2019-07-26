@@ -1,4 +1,4 @@
-#include "num.h"
+#include "bignum/bignum.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -19,134 +19,68 @@ void die(const char * what){
     exit(1);
 }
 
-WORD evenp(WORD *a){
-    return (!(a[0] & 1));
-}
-
-WORD oddp(WORD *a){
-    return a[0] & 1;
-}
-
-void half(WORD *a){
-    lsr_b(a, 1, a);
-}
-
-void load(WORD *a, WORD val){
-    zero(a);
-    add_nw(a, val, a);
-}
-
-void print_num(WORD *a){
-    int i = highbit(a) / 32;
-    for(i; i >= 0; --i){
-        printf("%#10.8x ", a[i]);
-        if(!(i % 8))
-            printf("\n");
-    }
-}
-
 typedef struct _rsa_pub_s {
-    WORD n[SZ_NUM];
-    WORD e[SZ_NUM];
+    Word n[N_SZ];
+    Word e[N_SZ];
 } rsa_pub;
 
 typedef struct _rsa_pri_s {
-    WORD n[SZ_NUM];
-    WORD d[SZ_NUM];
+    Word n[N_SZ];
+    Word d[N_SZ];
 } rsa_pri;
 
 struct rsa_num {
-    WORD n[SZ_NUM];
+    Word n[N_SZ];
 };
 
 /*
-    returns r s.t.
-    
-    a*r = 1 (mod m)
-
-    by way of Bezout's identity
-
-    [ au + bv = 1 ] < = > [au = 1 (mod b)]
-
-    optimised for the case in which a,m are guaranteed coprime (i.e.,
-    they are never both even).
+    basic long-division
 */
-void stein_inv(WORD *a, WORD *m, WORD *r){
-    if(zerop(a)) {
-        copy(a, r);
-        return;
-    }
-    if(zerop(m)) {
-        copy(m, r);
-        return;
-    }
-    if(evenp(a) && evenp(m)){
-        die("improper call to stein_inv: a, m both even");
-    }
+Word div_nn(Word *a, Word *b, Word *pq, Word *pr){
+    if(zerop(b)) 
+        die("div by zero");
 
-    WORD u[SZ_NUM];
-    WORD v[SZ_NUM];
-    WORD A[SZ_NUM];
-    WORD B[SZ_NUM];
-
-    load(u, 1);
-    zero(v);
-    copy(a, A);
-    copy(m, B);
-
-    do{
-        while(evenp(A)){
-            half(A);
-            if(evenp(v)){
-                add_nn(v, B, v);
-                half(v);
-            }
-        }
-        while(evenp(B)){
-            half(B);
-            if(evenp(u)){
-                add_nn(u, A, u);
-                half(u);
-            }
-        }
-        if(gte(A, B)){
-            sub_nn(A, B, A);
-            add_nn(v, u, v);
-        }
-        else{
-            sub_nn(B, A, B);
-            add_nn(u, v, u);
-        }    
-    } while (!(zerop(A)));
+    Word q[N_SZ];
+    Word r[N_SZ];
+    zero(q);
+    load(r, 0);
     
-    printf("u:\n");
-    print_num(u);
-    printf("v:\n");
-    print_num(v);
-    copy(u, r);
+    int i;
+    Word ha = highbit(a);
+
+    for(i = ha; i >= 0; --i){
+        twice(r);
+        set(0, sel(i, a), r);
+        if(gte(r, b)){
+            subs(r, b);
+            set(i, 1, q);
+        }
+    }
+    copy(q, pq);
+    copy(r, pr);
 }
 
 /*
     Peasant Method multiplication
     does NO bounds checking - you will get a garbage result if
-        highbit(a) + highbit(b) > MOD_MAX_SZ
+        highbit(a) + highbit(b) > N_BITS
     but this will be communicated by returning the overflow as 1.
 */
-WORD mul_nn(WORD *a, WORD *b, WORD *r){
-    WORD ha = highbit(a);
-    WORD c = 0;
+Word mul_nn(Word *a, Word *b, Word *r){
+    Word ha = highbit(a);
+    Word c = 0;
 
     int i;
-    WORD rz[SZ_NUM];
+    Word rz[N_SZ];
     zero(rz);
-    WORD bz[SZ_NUM];
+    Word bz[N_SZ];
     copy(b, bz);
 
     for(i = 0; i <= ha; i++){
         if(sel(i, a)){
-            c |= add_nn(rz, bz, rz);
+            c |= adds(rz, bz);
         }
-        lsl_b(bz, 1, bz);
+        twice(bz);
     }
     copy(rz, r);
     return c;
@@ -156,38 +90,91 @@ WORD mul_nn(WORD *a, WORD *b, WORD *r){
     The same method, but with correction modulo m at each step.
     We shift the result rz to preserve the value of bz.
 */
-void mul_mo(WORD *a, WORD *b, WORD *m, WORD *r){
+void mul_mo(Word *a, Word *b, Word *m, Word *r){
     int i;
-    WORD rz[SZ_NUM];
+    Word rz[N_SZ];
     zero(rz);
 
-    WORD bz[SZ_NUM];
+    Word bz[N_SZ];
     copy(b, bz);
     
-    for(i = SZ_NUM - 1; i >= 0; --i){
-        
-        lsl_b(rz, 1, rz);
-        if(gte(rz, m)){
-            sub_nn(rz, m, rz);
-        }
-        
-        if(sel(i, a)){
-            add_nn(rz, bz, rz);
-        }
-        if(gte(rz, m)){
-            sub_nn(rz, m, rz);
-        }
+    for(i = N_BITS - 1; i >= 0; --i){ 
+        twice(rz);
+        if(gte(rz, m))
+            subs(rz, m);
+        if(sel(i, a))
+            adds(rz, bz);
+        if(gte(rz, m))
+            subs(rz, m);
     }
     copy(rz, r);
 }
 
-void redc(WORD *a, WORD *m, WORD *r){
-    WORD az[SZ_NUM];
+void redc(Word *a, Word *m, Word *r){
+    Word az[N_SZ];
     copy(a, az);
-    while(gte(az, m)){
-        sub_nn(az, m, az);
-    }
+    while(gte(az, m))
+        subs(az, m);
     copy(az, r);
+}
+
+/*
+    returns r s.t.
+    
+    a*r = 1 (mod b)
+
+    by way of Bezout's identity
+
+    [ au + bv = 1 ] < = > [au = 1 (mod b)
+*/
+void euclid_inv(Word *a, Word *m, Word *r){
+    
+    Word t0[N_SZ];
+    Word t1[N_SZ];
+    Word r0[N_SZ];
+    Word r1[N_SZ];
+    Word quo[N_SZ];
+    Word tmp[N_SZ];
+
+    load(t0, 0);
+    load(t1, 1);
+    copy(m, r0);
+    copy(a, r1);
+    zero(quo);
+    zero(tmp);
+   
+    int i = 0;
+    while(!(zerop(r1)) && (i < 12)){
+        printf("r0,r1:\n");
+        print_num(r0);
+        print_num(r1);
+        printf("t0,t1:\n");
+        print_num(t0);
+        print_num(t1);
+
+        div_nn(r0, r1, quo, tmp);
+
+        printf("qu,re:\n");
+        print_num(quo);
+        print_num(tmp);
+
+        //(t0, t1) <= (t1, t0 - q*t1)
+        copy(t1, tmp);
+        copy(t0, t1);
+        copy(tmp, t0);
+        mul_mo(tmp, quo, m, tmp);
+        sub_mo(t1,  tmp, m, t1);
+
+        //(r0, r1) <= (r1, r0 - q*r1)
+        copy(r1, tmp);
+        copy(r0, r1);
+        copy(tmp, r0);
+        mul_mo(tmp, quo, m, tmp);
+        sub_mo(r1,  tmp, m, r1);
+
+        i++;
+    }
+    copy(t0, r);
 }
 
 /*
@@ -206,12 +193,12 @@ void redc(WORD *a, WORD *m, WORD *r){
         e /= 2
         
 */
-void spow_nn(WORD *b, WORD *e, WORD *m, WORD *r){
+void spow_nn(Word *b, Word *e, Word *m, Word *r){
    
-   WORD z[SZ_NUM];
+   Word z[N_SZ];
    z[0] = 1;
 
-   int i = SZ_NUM - 1;
+   int i = N_SZ - 1;
 
    if(zerop(e)){
         copy(z, r);
@@ -221,10 +208,10 @@ void spow_nn(WORD *b, WORD *e, WORD *m, WORD *r){
    while(highbit(e) > 0){
         if(e[0] & 1){
             mul_mo(b, z, m, z);
-            sub_nw(e, 1, e);
+            subws(e, 1);
         }
         mul_mo(b, b, m, b);
-        lsl_b(e, 1, e);
+        twice(e);
    }
 
    mul_mo(b, z, m, r);
@@ -236,25 +223,22 @@ void spow_nn(WORD *b, WORD *e, WORD *m, WORD *r){
         k->e in [3, n-1] in Z, s.t. 
             gcd(e, \lambda(p)) === gcd(e, lcm(p-1, q-1)) = 1
 */
-void rsaep(rsa_pub *k, WORD *m, WORD *c){
+void rsaep(rsa_pub *k, Word *m, Word *c){
     spow_nn(m, k->e, k->n, c);    
 }
 
-void rsadp(rsa_pri *k, WORD *c, WORD *m){ 
+void rsadp(rsa_pri *k, Word *c, Word *m){ 
     spow_nn(c, k->d, k->n, m);
 }
 
 int main(){
-    WORD p[SZ_NUM];
-    WORD q[SZ_NUM];
-    WORD n[SZ_NUM];
+    Word p[N_SZ];
+    Word q[N_SZ];
+    Word n[N_SZ];
 
-    zero(p);
-    zero(q);
+    load(p, 103);
+    load(q, 107);
     zero(n);
-
-    p[0] = 103;
-    q[0] = 107;
     
     // 102 = 2 * 3 * 17
     // 106 = 2 * 53
@@ -267,18 +251,26 @@ int main(){
     rsa_pub k_1; 
     
     copy(n, k_1.n);
-    zero(k_1.e);
-    k_1.e[0] = 257;
+    load(k_1.e, 257);
 
     // gcd(2703, 257) = gcd(2*3*17*53, 257) = 1
 
     rsa_pri k_2;
 
     copy(n, k_2.n);
-    stein_inv(k_1.e, n, k_2.d);
+    
+    printf("inv start\n");
+
+    euclid_inv(k_1.e, n, k_2.d);
+
+    printf("inv done\n");
 
     print_num(k_1.e);
     print_num(k_2.d);
+
+    //mul_mo(k_1.e, k_2.d, n, q);
+
+    //print_num(q);
 
     return 0;
 }
