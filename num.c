@@ -29,7 +29,7 @@ WORD add_nn(WORD *a, WORD *b, WORD *r){
 WORD add_nw(WORD *a, WORD b, WORD *r){
     int i;
 
-    DWORD z = (DWORD)a[0] - b;
+    DWORD z = (DWORD)a[0] + b;
     r[0] = z & W_MASK;
     WORD c = z >> W_SZ;
 
@@ -173,9 +173,9 @@ WORD highbit(WORD *a){
         if(a[i] == 0){
             continue;
         }
-        for(j = W_SZ - 1; i >= 0; --i) {
+        for(j = W_SZ - 1; j >= 0; --j) {
             if((a[i] >> j) & 1){
-                return (i * 8) + j;
+                return (i * W_SZ) + j;
             }
         }
     }
@@ -190,10 +190,10 @@ WORD highbit(WORD *a){
 WORD gte(WORD *a, WORD *b){
     WORD ha = highbit(a);
     WORD hb = highbit(b);
-
+    
     if (ha > hb)
         return 1;
-    if (hb < ha)
+    if (ha < hb)
         return 0;
 
     int i;
@@ -207,5 +207,5 @@ WORD gte(WORD *a, WORD *b){
         if (sa < sb)
             return 0;
     }
-    return 0;
+    return 1;
 }

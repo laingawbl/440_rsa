@@ -34,7 +34,7 @@ struct rsa_num {
     a = 2^n,    n in Z
     b = 2m + 1, m in Z
 */
-void stein_gcd(WORD *a, WORD *b, WORD *u, WORD *v){
+void stein_gcd(WORD *a, WORD *b, WORD *ru, WORD *rv){
     WORD alpha[SZ_NUM];
     WORD beta[SZ_NUM];
     WORD u[SZ_NUM];
@@ -59,8 +59,8 @@ void stein_gcd(WORD *a, WORD *b, WORD *u, WORD *v){
         }
     }
 
-    copy(u, p);
-    copy(v, q);
+    copy(u, ru);
+    copy(v, rv);
 }
 
 /*

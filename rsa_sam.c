@@ -14,56 +14,116 @@
     this code should NEVER be used for cryptographic purposes.
 */
 
-inline void die(const char * what){
+void die(const char * what){
     printf("error: %s", what);
     exit(1);
 }
 
-struct rsa_pub {
+WORD evenp(WORD *a){
+    return (!(a[0] & 1));
+}
+
+WORD oddp(WORD *a){
+    return a[0] & 1;
+}
+
+void half(WORD *a){
+    lsr_b(a, 1, a);
+}
+
+void load(WORD *a, WORD val){
+    zero(a);
+    add_nw(a, val, a);
+}
+
+void print_num(WORD *a){
+    int i = highbit(a) / 32;
+    for(i; i >= 0; --i){
+        printf("%#10.8x ", a[i]);
+        if(!(i % 8))
+            printf("\n");
+    }
+}
+
+typedef struct _rsa_pub_s {
     WORD n[SZ_NUM];
     WORD e[SZ_NUM];
-};
+} rsa_pub;
 
-struct rsa_pri {
+typedef struct _rsa_pri_s {
     WORD n[SZ_NUM];
     WORD d[SZ_NUM];
-};
+} rsa_pri;
 
 struct rsa_num {
     WORD n[SZ_NUM];
 };
 
 /*
-    a = 2^n,    n in Z
-    b = 2m + 1, m in Z
+    returns r s.t.
+    
+    a*r = 1 (mod m)
+
+    by way of Bezout's identity
+
+    [ au + bv = 1 ] < = > [au = 1 (mod b)]
+
+    optimised for the case in which a,m are guaranteed coprime (i.e.,
+    they are never both even).
 */
-void stein_gcd(WORD *a, WORD *b, WORD *u, WORD *v){
-    WORD alpha[SZ_NUM];
-    WORD beta[SZ_NUM];
-    WORD u[SZ_NUM];
-    WORD v[SZ_NUM];
-
-    copy(a, alpha);
-    copy(b, beta);
-    zero(u);
-    zero(v);
-
-    while !(zerop(a)){
-        lsr_b(a, 1, a);
-        if(sel(1, u) == 0){
-            lsr_b(u, 1, u);
-            lsr_b(v, 1, v);
-        }
-        else {
-            add_nn(u, beta, u);
-            lsr_b(u, 1, u);
-            lsr_b(v, 1, v);
-            add_nn(v, alpha, v);
-        }
+void stein_inv(WORD *a, WORD *m, WORD *r){
+    if(zerop(a)) {
+        copy(a, r);
+        return;
+    }
+    if(zerop(m)) {
+        copy(m, r);
+        return;
+    }
+    if(evenp(a) && evenp(m)){
+        die("improper call to stein_inv: a, m both even");
     }
 
-    copy(u, p);
-    copy(v, q);
+    WORD u[SZ_NUM];
+    WORD v[SZ_NUM];
+    WORD A[SZ_NUM];
+    WORD B[SZ_NUM];
+
+    load(u, 1);
+    zero(v);
+    copy(a, A);
+    copy(m, B);
+
+    do{
+        while(evenp(A)){
+            half(A);
+            if(evenp(v)){
+                add_nn(v, B, v);
+                half(v);
+            }
+        }
+        while(evenp(B)){
+            half(B);
+            if(evenp(u)){
+                add_nn(u, A, u);
+                half(u);
+            }
+        }
+        if(gte(A, B)){
+            sub_nn(A, B, A);
+            add_nn(v, u, v);
+        }
+        else{
+            sub_nn(B, A, B);
+            add_nn(u, v, u);
+        }    
+    } while (!(zerop(A)));
+    
+    printf("u:\n");
+    print_num(u);
+    printf("v:\n");
+    print_num(v);
+    copy(u, r);
 }
 
 /*
@@ -78,6 +138,7 @@ WORD mul_nn(WORD *a, WORD *b, WORD *r){
 
     int i;
     WORD rz[SZ_NUM];
+    zero(rz);
     WORD bz[SZ_NUM];
     copy(b, bz);
 
@@ -88,7 +149,7 @@ WORD mul_nn(WORD *a, WORD *b, WORD *r){
         lsl_b(bz, 1, bz);
     }
     copy(rz, r);
-    return WORD;
+    return c;
 }
 
 /*
@@ -118,6 +179,15 @@ void mul_mo(WORD *a, WORD *b, WORD *m, WORD *r){
         }
     }
     copy(rz, r);
+}
+
+void redc(WORD *a, WORD *m, WORD *r){
+    WORD az[SZ_NUM];
+    copy(a, az);
+    while(gte(az, m)){
+        sub_nn(az, m, az);
+    }
+    copy(az, r);
 }
 
 /*
@@ -157,7 +227,7 @@ void spow_nn(WORD *b, WORD *e, WORD *m, WORD *r){
         lsl_b(e, 1, e);
    }
 
-   mul_mo(b, z, r);
+   mul_mo(b, z, m, r);
 }
 
 /* 
@@ -172,4 +242,43 @@ void rsaep(rsa_pub *k, WORD *m, WORD *c){
 
 void rsadp(rsa_pri *k, WORD *c, WORD *m){ 
     spow_nn(c, k->d, k->n, m);
+}
+
+int main(){
+    WORD p[SZ_NUM];
+    WORD q[SZ_NUM];
+    WORD n[SZ_NUM];
+
+    zero(p);
+    zero(q);
+    zero(n);
+
+    p[0] = 103;
+    q[0] = 107;
+    
+    // 102 = 2 * 3 * 17
+    // 106 = 2 * 53
+    // lcm(102, 106) = 5406
+
+    mul_nn(p, q, n);
+
+    print_num(n);
+
+    rsa_pub k_1; 
+    
+    copy(n, k_1.n);
+    zero(k_1.e);
+    k_1.e[0] = 257;
+
+    // gcd(2703, 257) = gcd(2*3*17*53, 257) = 1
+
+    rsa_pri k_2;
+
+    copy(n, k_2.n);
+    stein_inv(k_1.e, n, k_2.d);
+
+    print_num(k_1.e);
+    print_num(k_2.d);
+
+    return 0;
 }
