@@ -1,4 +1,4 @@
-#include "bignum/bignum.h"
+#include "bignum.h"
 #include "octets.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -214,16 +214,14 @@ void load_miller_rabin(Word k, Word *p){
     load_random(max, n);
     set(0, 1, n); //enforce that n is odd
     set(PRIME_BITS-1, 1, n); //enforce that n > 2^b-1
-    for(i=0; i < N_BITS; i++){             
+    for(i=0; i < 4*N_BITS; i++){             
         if(rabin_test(k, n)){
             copy(n, p);
             return;
         }
-        if(!(i % 50))
-            printf("tried %d numbers...\n", i);
         addws(n, 2);
     }
-    die("tried N_BITS numbers with no luck!\n");
+    die("tried 4*N_BITS numbers with no luck!\n");
 }
 
 /* 
@@ -249,90 +247,102 @@ void rsadp(rsa_pri *k, Word *c, Word *m){
 int main(){
     Word p[N_SZ];
     Word q[N_SZ];
-    Word n[N_SZ];
-    Word phi[N_SZ];
+    Word z[N_SZ];
 
-    load_miller_rabin(32, p);
-    load_miller_rabin(32, q);
-    zero(n);
-    
-    mul(p, q, n);
-
-    printf("pq = %d-digit n\n", highbit(n));
-    print_num(n);
+    Word mrep[N_SZ];
 
     rsa_pub ke; 
     rsa_pri kd;
 
-    copy(n, ke.n);
-    copy(n, kd.n);
+    int i, j;
 
-    subws(p,1);
-    subws(q,1);
+    char *msg = "Embedded";
+    char out[4096];
 
-    mul(p,q,phi);
+    int mlen = strlen(msg); 
 
-    // even without Carmichael's lambda, we can strip out powers of 2
-    while(evenp(p) && evenp(q)){
-        half(p);
-        half(q);
-        half(phi);
-    }
 
-    zero(p);
-    zero(q);
+    for(i = 0; i < 20; i++){      
+        zero(p);
+        zero(q);
+        zero(z);
+        zero(mrep);
 
-    int i;
-    Word inv;
+        /*
+            generate primes
+        */
+        load_miller_rabin(32, p);
+        load_miller_rabin(32, q);
 
-    unsigned long long dec_phi = to_dec(phi);
+        /*
+            calculate modulus n=pq
+        */
+        mul(p, q, z);
+        copy(z, ke.n);
+        copy(z, kd.n);
 
-    for(i=3; i<=257; i+=2){
-        load(ke.e, i);
-        inv = !(euclid_inv(ke.e, phi, kd.d));
-        if(inv){
-            break;
+        printf("pq = %d-digit n\n", highbit(z));
+        print_num(z);
+
+        /*
+            calculate phi(n) = (p-1)(q-1)
+        */
+        subws(p,1);
+        subws(q,1);
+        zero(z);
+        mul(p,q,z);
+
+        /*
+            find small, invertible public exponent
+        */
+        for(j=3; j<=257; j+=2){
+            load(ke.e, j);
+            if(!(euclid_inv(ke.e, z, kd.d)))
+                break;
+        } 
+        if(j == 258)
+            die("number is composite up to 258\n");
+
+        /*
+            now ke = (n,e), kd = (n,d) are ready
+        */
+
+        printf("encrypt, decrypt:\n");
+        print_num(ke.e);
+        print_num(kd.d);
+
+        os2ip(msg, mlen, mrep);
+        printf("message representative:\n");
+        print_num(mrep);
+
+        /*
+            encrypt the mrep using ke
+        */
+        zero(z);
+        rsaep(&ke, mrep, z);
+    
+        printf("ciphertext representative:\n");
+        print_num(z);
+
+        /*
+            decrypt the mrep using kd
+        */
+        rsadp(&kd, z, mrep);
+
+        printf("recovered message representative:\n");
+        print_num(mrep);
+
+        memset(out, 0, 4096);
+        i2osp(mrep, N_BITS, out); 
+
+        printf("recovered plaintext:\n%s\n", out);
+    
+        if(out[0] == msg[0]){
+            printf("%d: success!\n\n", i);
+        }
+        else{
+            printf("%d: failure!\n\n", i);
         }
     }
-    if(i == 258){
-        printf("great scott! you've found a super-composite number!\n");
-        print_num(phi);
-        die("mathematical discovery\n");
-    }
-
-    printf("\nmodulus is:\n");
-    print_num(n);
-
-    char *msg = "UVic";
-    int mlen = strlen(msg);
-    
-    char out[4096];
-    
-    printf("\nplaintext:\n%s\n", msg);
-
-    Word mrep[N_SZ];
-    zero(mrep);
-    
-    os2ip(msg, mlen, mrep);
-    printf("\nmessage representative:\n");
-    print_num(mrep);
-
-    rsaep(&ke, mrep, phi);
-    
-    printf("\nc = m^%llu (mod %llu)\nciphertext representative:\n",
-        to_dec(ke.e), to_dec(ke.n));
-    print_num(phi);
-
-    rsadp(&kd, phi, mrep);
-
-    printf("\nm'= c^%llu (mod %llu)\nrecovered plaintext representative:\n",
-        to_dec(kd.d), to_dec(kd.n));
-    print_num(mrep);
-
-    i2osp(mrep, mlen+1, out); 
-    out[mlen] = 0;
-
-    printf("\nrecovered plaintext:\n%s\n", out);
-
     return 0;
 }

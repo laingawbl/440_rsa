@@ -4,7 +4,7 @@
 #include<stdint.h>
 #include<stdio.h>
 
-#define N_BITS 512
+#define N_BITS 256
 #define WHICH_WORD 4
 
 /*
@@ -40,7 +40,7 @@
     #error must define WHICH_WORD in {1, 2, 4} bytes
 #endif
 
-#define N_SZ (N_BITS / W_SZ) 
+#define N_SZ (N_BITS / W_SZ) + 1 
 
 typedef WORD_T  Word;
 typedef DWORD_T DWord;

@@ -1,7 +1,7 @@
 #ifndef __OCTETS_H__
 #define __OCTETS_H__
 
-#include "bignum/bignum.h"
+#include "bignum.h"
 #include<string.h>
 
 unsigned long long to_dec(Word *a);

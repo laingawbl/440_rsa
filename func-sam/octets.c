@@ -10,9 +10,10 @@ unsigned long long to_dec(Word *a){
 
 int i2osp(Word *num, int len, char *oct){
     int hibyte = (highbit(num)+7)/8;
-    if(hibyte >= len)
+    if(hibyte >= len){
+        printf("message too long!\n");
         return 0;
-
+    }
     int hiword = hibyte/WHICH_WORD;
     int rem = hibyte-(hiword*WHICH_WORD);
     int i;
@@ -39,13 +40,13 @@ int i2osp(Word *num, int len, char *oct){
         oct[2*hiword + 1] = num[hiword] & 0xff;
 #elif(WHICH_WORD == 4)
     if(rem > 0){
-        oct[4*hiword + 1] = num[hiword] & 0xff;
+        oct[4*hiword] = num[hiword] & 0xff;
     }
     if(rem > 1){
-        oct[4*hiword + 2] = (num[hiword] >> 8) & 0xff;
+        oct[4*hiword + 1] = (num[hiword] >> 8) & 0xff;
     }
     if(rem > 2){
-        oct[4*hiword + 3] = (num[hiword] >> 16) & 0xff;
+        oct[4*hiword + 2] = (num[hiword] >> 16) & 0xff;
     }
 #endif
     return hibyte;
@@ -53,8 +54,10 @@ int i2osp(Word *num, int len, char *oct){
 
 int os2ip(char *oct, int len, Word *num){
 
-    if(len > N_SZ)
+    if(len > N_SZ){
+        printf("message too long! %d doesn't fit in %d\n", len, N_SZ);
         return 0;
+    }
 
     int hiword = len/WHICH_WORD;
     int rem = len-(hiword*WHICH_WORD);
