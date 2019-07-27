@@ -11,4 +11,4 @@ main: main.o octets.o bignum.o rsa.o
 .PHONY: clean
 
 clean:
-	rm *.o
+	rm *.o main
