@@ -255,7 +255,7 @@ void load(Word *a, Word val){
 void print_num(Word *a){
     int i;
     if(N_SZ > 8) {
-        i = highbit(a) / 32;
+        i = highbit(a) / W_SZ;
     }
     else {
         i = N_SZ - 1;

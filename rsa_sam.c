@@ -127,7 +127,7 @@ void redc(Word *a, Word *m, Word *r){
 
     [ au + bv = 1 ] < = > [au = 1 (mod b)
 */
-void euclid_inv(Word *a, Word *m, Word *r){
+Word euclid_inv(Word *a, Word *m, Word *r){
     
     Word t0[N_SZ];
     Word t1[N_SZ];
@@ -145,19 +145,8 @@ void euclid_inv(Word *a, Word *m, Word *r){
    
     int i = 0;
     while(!(zerop(r1)) && (i < 12)){
-        printf("r0,r1:\n");
-        print_num(r0);
-        print_num(r1);
-        printf("t0,t1:\n");
-        print_num(t0);
-        print_num(t1);
-
         div_nn(r0, r1, quo, tmp);
-
-        printf("qu,re:\n");
-        print_num(quo);
-        print_num(tmp);
-
+        
         //(t0, t1) <= (t1, t0 - q*t1)
         copy(t1, tmp);
         copy(t0, t1);
@@ -175,6 +164,8 @@ void euclid_inv(Word *a, Word *m, Word *r){
         i++;
     }
     copy(t0, r);
+    
+    return highbit(r0);
 }
 
 /*
@@ -231,6 +222,14 @@ void rsadp(rsa_pri *k, Word *c, Word *m){
     spow_nn(c, k->d, k->n, m);
 }
 
+/*
+    if you know the contents of bignum will fit inside an
+    unsigned long long, use this
+*/
+unsigned long long to_dec(Word *a){
+    return (((unsigned long long)a[1] << W_SZ) | a[0]);
+}
+
 int main(){
     Word p[N_SZ];
     Word q[N_SZ];
@@ -246,28 +245,27 @@ int main(){
 
     mul_nn(p, q, n);
 
-    print_num(n);
+    rsa_pub ke; 
+    rsa_pri kd;
 
-    rsa_pub k_1; 
+    copy(n, ke.n);
+    copy(n, kd.n);
+
+    int i;
+    Word not_inv;
+
+    for(i=1; i<=257; i+=2){
+        load(ke.e, i);
+        not_inv = euclid_inv(ke.e, n, kd.d);
+        if(not_inv)
+            printf("%6llu is not a unit mod %llu (gcd has %u bits)\n",
+                to_dec(ke.e), to_dec(n), not_inv);
+        else
+            printf("%6llu * %6llu = 1 (mod %llu)\n", 
+                to_dec(ke.e), to_dec(kd.d), to_dec(n));
+ 
+    }
     
-    copy(n, k_1.n);
-    load(k_1.e, 257);
-
-    // gcd(2703, 257) = gcd(2*3*17*53, 257) = 1
-
-    rsa_pri k_2;
-
-    copy(n, k_2.n);
-    
-    printf("inv start\n");
-
-    euclid_inv(k_1.e, n, k_2.d);
-
-    printf("inv done\n");
-
-    print_num(k_1.e);
-    print_num(k_2.d);
-
     //mul_mo(k_1.e, k_2.d, n, q);
 
     //print_num(q);
