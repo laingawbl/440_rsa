@@ -1,5 +1,4 @@
-#include "bignum.h"
-#include "octets.h"
+#include "rsa.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,16 +20,6 @@ void die(const char * what){
     printf("error: %s", what);
     exit(1);
 }
-
-typedef struct _rsa_pub_s {
-    Word n[N_SZ];
-    Word e[N_SZ];
-} rsa_pub;
-
-typedef struct _rsa_pri_s {
-    Word n[N_SZ];
-    Word d[N_SZ];
-} rsa_pri;
 
 /*
     returns r s.t.
@@ -219,7 +208,7 @@ void load_miller_rabin(Word k, Word *p){
             copy(n, p);
             return;
         }
-        addws(n, 2);
+        addws(n, max); //max ~= ln(2^b)
     }
     die("tried 4*N_BITS numbers with no luck!\n");
 }
@@ -244,105 +233,84 @@ void rsadp(rsa_pri *k, Word *c, Word *m){
     spow_nn(c, k->d, k->n, m);
 }
 
-int main(){
-    Word p[N_SZ];
-    Word q[N_SZ];
-    Word z[N_SZ];
-
-    Word mrep[N_SZ];
-
-    rsa_pub ke; 
-    rsa_pri kd;
-
-    int i, j;
-
-    char *msg = "Embedded";
-    char out[4096];
-
-    int mlen = strlen(msg); 
-
-
-    for(i = 0; i < 20; i++){      
-        zero(p);
-        zero(q);
-        zero(z);
-        zero(mrep);
-
-        /*
-            generate primes
-        */
-        load_miller_rabin(32, p);
-        load_miller_rabin(32, q);
-
-        /*
-            calculate modulus n=pq
-        */
-        mul(p, q, z);
-        copy(z, ke.n);
-        copy(z, kd.n);
-
-        printf("pq = %d-digit n\n", highbit(z));
-        print_num(z);
-
-        /*
-            calculate phi(n) = (p-1)(q-1)
-        */
-        subws(p,1);
-        subws(q,1);
-        zero(z);
-        mul(p,q,z);
-
-        /*
-            find small, invertible public exponent
-        */
-        for(j=3; j<=257; j+=2){
-            load(ke.e, j);
-            if(!(euclid_inv(ke.e, z, kd.d)))
-                break;
-        } 
-        if(j == 258)
-            die("number is composite up to 258\n");
-
-        /*
-            now ke = (n,e), kd = (n,d) are ready
-        */
-
-        printf("encrypt, decrypt:\n");
-        print_num(ke.e);
-        print_num(kd.d);
-
-        os2ip(msg, mlen, mrep);
-        printf("message representative:\n");
-        print_num(mrep);
-
-        /*
-            encrypt the mrep using ke
-        */
-        zero(z);
-        rsaep(&ke, mrep, z);
+void genkeys(Word exp, Word mr_rounds, rsa_pub *ke, rsa_pri *kd){
     
-        printf("ciphertext representative:\n");
-        print_num(z);
+    Word a[N_SZ];
+    Word b[N_SZ];
+    Word e[N_SZ];
+    Word d[N_SZ];
+    Word n[N_SZ];
 
-        /*
-            decrypt the mrep using kd
-        */
-        rsadp(&kd, z, mrep);
+    zero(a);
+    zero(b);
+    load(e, exp);
+    zero(d);
+    zero(n);
 
-        printf("recovered message representative:\n");
-        print_num(mrep);
+    Word quot;
+    do {
+        // pick two PRIME_BITS-length primes through miller-rabin testing
+        load_miller_rabin(mr_rounds, a);
+        load_miller_rabin(mr_rounds, b);
+        mul(a, b, n);
+        
+        // calculate phi(n) = (a-1)(b-1), overwriting secret b as we do so
+        subws(a, 1);
+        subws(b, 1);
+        mul(a, b, b);
+        zero(a);
 
-        memset(out, 0, 4096);
-        i2osp(mrep, N_BITS, out); 
-
-        printf("recovered plaintext:\n%s\n", out);
+        // [ (exp) is unit (mod phi(n)) ] <=> [ d = inv(exp), quot = 0 ].
+        quot = euclid_inv(e, b, d);
+        
+        // also zero out secret phi(n)
+        zero(b);
+    } while (quot != 0);
+   
+    // now d is the only secret - (n, e) form the public key
+    copy(d, kd->d);
+    zero(d);
     
-        if(out[0] == msg[0]){
-            printf("%d: success!\n\n", i);
-        }
-        else{
-            printf("%d: failure!\n\n", i);
-        }
+    copy(n, ke->n);
+    copy(n, kd->n);
+
+    copy(e, ke->e);
+}
+
+int rsa_enc(rsa_pub *ke, char *m, int len, char *c){
+    if(len > SYM_SZ){
+        printf("message too long\n");
+        return 0;
     }
-    return 0;
+    
+    Word mr[N_SZ];
+    Word cr[N_SZ];
+    
+    zero(mr);
+    zero(cr);
+
+    os2ip(m, len, mr);
+    
+    rsaep(ke, mr, cr);
+   
+    i2osp(cr, SYM_SZ, c);
+
+    return len;
+}
+
+int rsa_dec(rsa_pri *kd, char *c, char *m){ 
+    
+    Word mr[N_SZ];
+    Word cr[N_SZ];
+    
+    zero(mr);
+    zero(cr);
+
+    os2ip(c, SYM_SZ, cr);
+
+    rsadp(kd, cr, mr);
+
+    int written = i2osp(mr, SYM_SZ, m);
+
+    return written;
 }

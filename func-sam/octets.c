@@ -10,8 +10,9 @@ unsigned long long to_dec(Word *a){
 
 int i2osp(Word *num, int len, char *oct){
     int hibyte = (highbit(num)+7)/8;
-    if(hibyte >= len){
-        printf("message too long!\n");
+    if(hibyte > len){
+        printf("number too long! %d bytes cannot fit into %d\n",
+            hibyte, len);
         return 0;
     }
     int hiword = hibyte/WHICH_WORD;
@@ -54,8 +55,8 @@ int i2osp(Word *num, int len, char *oct){
 
 int os2ip(char *oct, int len, Word *num){
 
-    if(len > N_SZ){
-        printf("message too long! %d doesn't fit in %d\n", len, N_SZ);
+    if(len > SYM_SZ){
+        printf("message too long! %d cannot fit in %d bytes\n", len, SYM_SZ);
         return 0;
     }
 
@@ -67,12 +68,17 @@ int os2ip(char *oct, int len, Word *num){
 #if (WHICH_WORD == 1)
         num[i] = oct[i];
 #elif (WHICH_WORD == 2)
-        num[i] = ((Word)oct[2*i + 1] << 8) | oct[2*i];
+        num[i] = oct[2*i + 1];
+        num[i] <<= 8;
+        num[i] += oct[2*i] & 0xff;
 #elif (WHICH_WORD == 4)
-        num[i] = ((Word)oct[4*i + 3] << 24) | 
-                 ((Word)oct[4*i + 2] << 16) |
-                 ((Word)oct[4*i + 1] << 8 ) |
-                 oct[4*i];
+        num[i] = oct[4*i + 3];
+        num[i] <<= 8;
+        num[i] += oct[4*i + 2] & 0xff;
+        num[i] <<= 8;
+        num[i] += oct[4*i + 1] & 0xff;
+        num[i] <<= 8;
+        num[i] += oct[4*i] & 0xff;
 #endif
     }
 
@@ -80,14 +86,18 @@ int os2ip(char *oct, int len, Word *num){
     if(rem)
         num[hiword] = oct[2*hiword];
 #elif (WHICH_WORD == 4)
-    if(rem > 0){
-        num[hiword] = oct[4*hiword];
+    if(rem)
+        num[hiword] = 0;
+    if(rem > 2){
+        num[hiword] = oct[4*hiword + 2] & 0xff;
+        num[hiword] <<= 8;
     }
     if(rem > 1){
-        num[hiword] |= (Word)oct[2*hiword + 1] << 8;
+        num[hiword] += oct[2*hiword + 1] & 0xff;
+        num[hiword] <<= 8;
     }
-    if(rem > 2){
-        num[hiword] |= (Word)oct[2*hiword + 2] << 16;
+    if(rem > 0){
+        num[hiword] += oct[2*hiword + 2] & 0xff;
     }
 #endif
     return len;

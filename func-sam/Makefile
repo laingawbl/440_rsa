@@ -1,11 +1,11 @@
 CC=gcc
-CFLAGS=-I. -O3
-DEPS=octets.h bignum.h
+CFLAGS=-I. -O3 -pg
+DEPS=octets.h bignum.h rsa.h
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-rsa: octets.o bignum.o rsa_sam.o
+main: main.o octets.o bignum.o rsa.o
 	$(CC) -o $@ $^ $(CFLAGS)
 
 .PHONY: clean

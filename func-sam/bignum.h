@@ -4,7 +4,7 @@
 #include<stdint.h>
 #include<stdio.h>
 
-#define N_BITS 256
+#define N_BITS 512
 #define WHICH_WORD 4
 
 /*
