@@ -1,0 +1,349 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls   s/call   s/call  name    
+ 50.96      2.16     2.16 141916036     0.00     0.00  gte
+ 46.82      4.14     1.98   187645     0.00     0.00  mul_mo
+  2.25      4.23     0.10   125246     0.00     0.00  highbit
+  0.00      4.23     0.00   124367     0.00     0.00  half
+  0.00      4.23     0.00   124270     0.00     0.00  oddp
+  0.00      4.23     0.00    62956     0.00     0.00  subws
+  0.00      4.23     0.00     1049     0.00     0.00  copy
+  0.00      4.23     0.00      921     0.00     0.00  zero
+  0.00      4.23     0.00      531     0.00     0.00  equ
+  0.00      4.23     0.00      499     0.00     0.00  zerop
+  0.00      4.23     0.00      490     0.00     0.00  load
+  0.00      4.23     0.00      487     0.00     0.01  spow_nn
+  0.00      4.23     0.00      442     0.00     0.00  addws
+  0.00      4.23     0.00      365     0.00     0.00  subw
+  0.00      4.23     0.00      192     0.00     0.00  evenp
+  0.00      4.23     0.00      138     0.00     0.00  i2osp
+  0.00      4.23     0.00      138     0.00     0.00  os2ip
+  0.00      4.23     0.00       95     0.00     0.03  rabin_test
+  0.00      4.23     0.00       69     0.00     0.01  rsa_dec
+  0.00      4.23     0.00       69     0.00     0.01  rsa_enc
+  0.00      4.23     0.00       22     0.00     0.00  sub_mo
+  0.00      4.23     0.00       11     0.00     0.00  qdiv
+  0.00      4.23     0.00        4     0.00     0.00  set
+  0.00      4.23     0.00        2     0.00     1.52  load_miller_rabin
+  0.00      4.23     0.00        2     0.00     0.00  mul
+  0.00      4.23     0.00        1     0.00     0.00  euclid_inv
+  0.00      4.23     0.00        1     0.00     3.03  genkeys
+  0.00      4.23     0.00        1     0.00     0.00  print_num
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
+
+Copyright (C) 2012-2015 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 2 byte(s) for 0.24% of 4.23 seconds
+
+index % time    self  children    called     name
+                                                 <spontaneous>
+[1]    100.0    0.00    4.23                 msgtest [1]
+                0.00    3.03       1/1           genkeys [4]
+                0.00    0.60      69/69          rsa_enc [9]
+                0.00    0.60      69/69          rsa_dec [8]
+                0.00    0.00       1/125246      highbit [10]
+                0.00    0.00       1/1           print_num [29]
+-----------------------------------------------
+                0.00    0.60      69/487         rsa_enc [9]
+                0.00    0.60      69/487         rsa_dec [8]
+                0.00    3.03     349/487         rabin_test [5]
+[2]     99.8    0.00    4.22     487         spow_nn [2]
+                1.98    2.15  187362/187645      mul_mo [3]
+                0.09    0.00  124757/125246      highbit [10]
+                0.00    0.00  124270/124270      oddp [16]
+                0.00    0.00  124270/124367      half [15]
+                0.00    0.00   62605/62956       subws [17]
+                0.00    0.00     974/1049        copy [18]
+                0.00    0.00     487/490         load [22]
+                0.00    0.00     487/499         zerop [21]
+-----------------------------------------------
+                0.00    0.00      22/187645      euclid_inv [11]
+                0.00    0.00     261/187645      rabin_test [5]
+                1.98    2.15  187362/187645      spow_nn [2]
+[3]     97.8    1.98    2.16  187645         mul_mo [3]
+                2.16    0.00 141914902/141916036     gte [7]
+-----------------------------------------------
+                0.00    3.03       1/1           msgtest [1]
+[4]     71.7    0.00    3.03       1         genkeys [4]
+                0.00    3.03       2/2           load_miller_rabin [6]
+                0.00    0.00       1/1           euclid_inv [11]
+                0.00    0.00       7/921         zero [19]
+                0.00    0.00       4/1049        copy [18]
+                0.00    0.00       2/2           mul [28]
+                0.00    0.00       2/62956       subws [17]
+                0.00    0.00       1/490         load [22]
+-----------------------------------------------
+                0.00    3.03      95/95          load_miller_rabin [6]
+[5]     71.7    0.00    3.03      95         rabin_test [5]
+                0.00    3.03     349/487         spow_nn [2]
+                0.00    0.00     261/187645      mul_mo [3]
+                0.00    0.00     349/125246      highbit [10]
+                0.00    0.00     349/141916036     gte [7]
+                0.00    0.00     634/921         zero [19]
+                0.00    0.00     531/531         equ [20]
+                0.00    0.00     365/365         subw [24]
+                0.00    0.00     349/442         addws [23]
+                0.00    0.00     349/62956       subws [17]
+                0.00    0.00     192/192         evenp [25]
+                0.00    0.00      97/124367      half [15]
+-----------------------------------------------
+                0.00    3.03       2/2           genkeys [4]
+[6]     71.7    0.00    3.03       2         load_miller_rabin [6]
+                0.00    3.03      95/95          rabin_test [5]
+                0.00    0.00      93/442         addws [23]
+                0.00    0.00       4/4           set [27]
+                0.00    0.00       2/921         zero [19]
+                0.00    0.00       2/1049        copy [18]
+-----------------------------------------------
+                0.00    0.00      22/141916036     sub_mo [14]
+                0.00    0.00      69/141916036     rsa_enc [9]
+                0.00    0.00      69/141916036     rsa_dec [8]
+                0.00    0.00     349/141916036     rabin_test [5]
+                0.00    0.00     625/141916036     qdiv [13]
+                2.16    0.00 141914902/141916036     mul_mo [3]
+[7]     50.9    2.16    0.00 141916036         gte [7]
+-----------------------------------------------
+                0.00    0.60      69/69          msgtest [1]
+[8]     14.1    0.00    0.60      69         rsa_dec [8]
+                0.00    0.60      69/487         spow_nn [2]
+                0.00    0.00      69/138         i2osp [12]
+                0.00    0.00      69/141916036     gte [7]
+                0.00    0.00     138/921         zero [19]
+                0.00    0.00      69/138         os2ip [26]
+-----------------------------------------------
+                0.00    0.60      69/69          msgtest [1]
+[9]     14.1    0.00    0.60      69         rsa_enc [9]
+                0.00    0.60      69/487         spow_nn [2]
+                0.00    0.00      69/138         i2osp [12]
+                0.00    0.00      69/141916036     gte [7]
+                0.00    0.00     138/921         zero [19]
+                0.00    0.00      69/138         os2ip [26]
+-----------------------------------------------
+                0.00    0.00       1/125246      msgtest [1]
+                0.00    0.00       1/125246      euclid_inv [11]
+                0.00    0.00     138/125246      i2osp [12]
+                0.00    0.00     349/125246      rabin_test [5]
+                0.09    0.00  124757/125246      spow_nn [2]
+[10]     2.2    0.10    0.00  125246         highbit [10]
+-----------------------------------------------
+                0.00    0.00       1/1           genkeys [4]
+[11]     0.0    0.00    0.00       1         euclid_inv [11]
+                0.00    0.00      22/187645      mul_mo [3]
+                0.00    0.00      11/11          qdiv [13]
+                0.00    0.00       1/125246      highbit [10]
+                0.00    0.00      22/22          sub_mo [14]
+                0.00    0.00      69/1049        copy [18]
+                0.00    0.00      12/499         zerop [21]
+                0.00    0.00       2/490         load [22]
+                0.00    0.00       2/921         zero [19]
+-----------------------------------------------
+                0.00    0.00      69/138         rsa_enc [9]
+                0.00    0.00      69/138         rsa_dec [8]
+[12]     0.0    0.00    0.00     138         i2osp [12]
+                0.00    0.00     138/125246      highbit [10]
+-----------------------------------------------
+                0.00    0.00      11/11          euclid_inv [11]
+[13]     0.0    0.00    0.00      11         qdiv [13]
+                0.00    0.00     625/141916036     gte [7]
+-----------------------------------------------
+                0.00    0.00      22/22          euclid_inv [11]
+[14]     0.0    0.00    0.00      22         sub_mo [14]
+                0.00    0.00      22/141916036     gte [7]
+-----------------------------------------------
+                0.00    0.00      97/124367      rabin_test [5]
+                0.00    0.00  124270/124367      spow_nn [2]
+[15]     0.0    0.00    0.00  124367         half [15]
+-----------------------------------------------
+                0.00    0.00  124270/124270      spow_nn [2]
+[16]     0.0    0.00    0.00  124270         oddp [16]
+-----------------------------------------------
+                0.00    0.00       2/62956       genkeys [4]
+                0.00    0.00     349/62956       rabin_test [5]
+                0.00    0.00   62605/62956       spow_nn [2]
+[17]     0.0    0.00    0.00   62956         subws [17]
+-----------------------------------------------
+                0.00    0.00       2/1049        load_miller_rabin [6]
+                0.00    0.00       4/1049        genkeys [4]
+                0.00    0.00      69/1049        euclid_inv [11]
+                0.00    0.00     974/1049        spow_nn [2]
+[18]     0.0    0.00    0.00    1049         copy [18]
+-----------------------------------------------
+                0.00    0.00       2/921         euclid_inv [11]
+                0.00    0.00       2/921         load_miller_rabin [6]
+                0.00    0.00       7/921         genkeys [4]
+                0.00    0.00     138/921         rsa_enc [9]
+                0.00    0.00     138/921         rsa_dec [8]
+                0.00    0.00     634/921         rabin_test [5]
+[19]     0.0    0.00    0.00     921         zero [19]
+-----------------------------------------------
+                0.00    0.00     531/531         rabin_test [5]
+[20]     0.0    0.00    0.00     531         equ [20]
+-----------------------------------------------
+                0.00    0.00      12/499         euclid_inv [11]
+                0.00    0.00     487/499         spow_nn [2]
+[21]     0.0    0.00    0.00     499         zerop [21]
+-----------------------------------------------
+                0.00    0.00       1/490         genkeys [4]
+                0.00    0.00       2/490         euclid_inv [11]
+                0.00    0.00     487/490         spow_nn [2]
+[22]     0.0    0.00    0.00     490         load [22]
+-----------------------------------------------
+                0.00    0.00      93/442         load_miller_rabin [6]
+                0.00    0.00     349/442         rabin_test [5]
+[23]     0.0    0.00    0.00     442         addws [23]
+-----------------------------------------------
+                0.00    0.00     365/365         rabin_test [5]
+[24]     0.0    0.00    0.00     365         subw [24]
+-----------------------------------------------
+                0.00    0.00     192/192         rabin_test [5]
+[25]     0.0    0.00    0.00     192         evenp [25]
+-----------------------------------------------
+                0.00    0.00      69/138         rsa_enc [9]
+                0.00    0.00      69/138         rsa_dec [8]
+[26]     0.0    0.00    0.00     138         os2ip [26]
+-----------------------------------------------
+                0.00    0.00       4/4           load_miller_rabin [6]
+[27]     0.0    0.00    0.00       4         set [27]
+-----------------------------------------------
+                0.00    0.00       2/2           genkeys [4]
+[28]     0.0    0.00    0.00       2         mul [28]
+-----------------------------------------------
+                0.00    0.00       1/1           msgtest [1]
+[29]     0.0    0.00    0.00       1         print_num [29]
+-----------------------------------------------
+
+ This table describes the call tree of the program, and was sorted by
+ the total amount of time spent in each function and its children.
+
+ Each entry in this table consists of several lines.  The line with the
+ index number at the left hand margin lists the current function.
+ The lines above it list the functions that called this function,
+ and the lines below it list the functions this one called.
+ This line lists:
+     index	A unique number given to each element of the table.
+		Index numbers are sorted numerically.
+		The index number is printed next to every function name so
+		it is easier to look up where the function is in the table.
+
+     % time	This is the percentage of the `total' time that was spent
+		in this function and its children.  Note that due to
+		different viewpoints, functions excluded by options, etc,
+		these numbers will NOT add up to 100%.
+
+     self	This is the total amount of time spent in this function.
+
+     children	This is the total amount of time propagated into this
+		function by its children.
+
+     called	This is the number of times the function was called.
+		If the function called itself recursively, the number
+		only includes non-recursive calls, and is followed by
+		a `+' and the number of recursive calls.
+
+     name	The name of the current function.  The index number is
+		printed after it.  If the function is a member of a
+		cycle, the cycle number is printed between the
+		function's name and the index number.
+
+
+ For the function's parents, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the function into this parent.
+
+     children	This is the amount of time that was propagated from
+		the function's children into this parent.
+
+     called	This is the number of times this parent called the
+		function `/' the total number of times the function
+		was called.  Recursive calls to the function are not
+		included in the number after the `/'.
+
+     name	This is the name of the parent.  The parent's index
+		number is printed after it.  If the parent is a
+		member of a cycle, the cycle number is printed between
+		the name and the index number.
+
+ If the parents of the function cannot be determined, the word
+ `<spontaneous>' is printed in the `name' field, and all the other
+ fields are blank.
+
+ For the function's children, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the child into the function.
+
+     children	This is the amount of time that was propagated from the
+		child's children to the function.
+
+     called	This is the number of times the function called
+		this child `/' the total number of times the child
+		was called.  Recursive calls by the child are not
+		listed in the number after the `/'.
+
+     name	This is the name of the child.  The child's index
+		number is printed after it.  If the child is a
+		member of a cycle, the cycle number is printed
+		between the name and the index number.
+
+ If there are any cycles (circles) in the call graph, there is an
+ entry for the cycle-as-a-whole.  This entry shows who called the
+ cycle (as parents) and the members of the cycle (as children.)
+ The `+' recursive calls entry shows the number of function calls that
+ were internal to the cycle, and the calls entry for each member shows,
+ for that member, how many times it was called from other members of
+ the cycle.
+
+Copyright (C) 2012-2015 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Index by function name
+
+  [23] addws                  [22] load                    [9] rsa_enc
+  [18] copy                    [6] load_miller_rabin      [27] set
+  [20] equ                    [28] mul                     [2] spow_nn
+  [11] euclid_inv              [3] mul_mo                 [14] sub_mo
+  [25] evenp                  [16] oddp                   [24] subw
+   [4] genkeys                [26] os2ip                  [17] subws
+   [7] gte                    [29] print_num              [19] zero
+  [15] half                   [13] qdiv                   [21] zerop
+  [10] highbit                 [5] rabin_test
+  [12] i2osp                   [8] rsa_dec
