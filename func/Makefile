@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-I. -O3
+CFLAGS=-I. -O3 -Wall
 DEPS=octets.h bignum.h rsa.h
 
 %.o: %.c $(DEPS)

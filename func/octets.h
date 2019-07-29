@@ -6,8 +6,8 @@
 
 #define SYM_SZ (N_BITS / 8)
 
-unsigned long long to_dec(Word *a);
-int os2ip(char *oct, int len, Word *num); 
-int i2osp(Word *num, int len, char *oct);
+unsigned long long to_dec(const uint32_t *a);
+int os2ip(const char *oct, const size_t len, uint32_t *num); 
+int i2osp(const uint32_t *num, const size_t len, char *oct);
 
 #endif

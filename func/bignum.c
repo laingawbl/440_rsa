@@ -1,174 +1,162 @@
 #include "bignum.h"
-void zerol(Word *n, int l){
-    int i;
-    for (i = 0; i < l; ++i){
-        n[i] = 0;
+
+/*
+    MEMORY MOVEMENT
+*/
+void dnum_split(const uint32_t *a, uint32_t *hi, uint32_t *lo){
+    size_t i;
+    if(hi){
+        for(i = N_SZ*2 - 1; i >= N_SZ; --i){
+            hi[i - N_SZ] = a[i];
+        }
+        widen(hi);
+    }
+    if(lo){
+         for(i = N_SZ-1; i >= 0; --i){
+            lo[i] = a[i];
+        }
+        widen(lo);
     }
 }
 
-void zero(Word *n){
-    zerol(n, N_SZ);
-}
-
-void copy(Word *fr, Word *to){
-    int i;
-    for (i = 0; i < N_SZ; ++i){
-        to[i] = fr[i];
-    }
-}
-
-Word add(Word *a, Word *b, Word *r){
-    int i;
-    Word c = 0;
-
-    for (i = 0; i < N_SZ; ++i){
-        DWord z = (DWord)a[i] + (DWord)b[i] + c;
-        r[i] = z & W_MASK;
-        c = z >> W_SZ;
-    }
-    return c;
-}
-
-Word addw(Word *a, Word b, Word *r){
-    int i;
-
-    DWord z = (DWord)a[0] + b;
-    r[0] = z & W_MASK;
-    Word c = z >> W_SZ;
-
-    // propagate the carry up
-    for (i = 0; (i < N_SZ); i++){
-        z = (DWord)a[i] + c;
-        r[i] = z & W_MASK;
-        c = z >> W_SZ;
+/*
+    ARITHMETIC PRIMITIVES
+    
+    the carry calculation is taken from BearSSL's br_i32_add.
+*/
+uint32_t add(uint32_t *a, const uint32_t *b){
+    uint32_t c;
+    size_t i, k;
+    
+    k = wordsize(a);
+    c = 0;
+    for (i = 0; i < k; ++i){
+        uint32_t n = a[i] + b[i] + c; 
+        c = (c & (a[i] == n)) | (n < a[i]);
+        a[i] = n;
     }
     return c;
 }
 
-Word sub(Word *a, Word *b, Word *r){
-   int i;
-   Word c = 0;
+uint32_t addw(uint32_t *a, const uint32_t b){
+    uint32_t c;
+    size_t i, k;
+    
+    k = wordsize(a);
+    uint32_t n = a[0] + b; 
+    c = (n < a[0]);
+    a[0] = n;
 
-   for(i = 0; i < N_SZ; ++i){
-        DWord z = (DWord)a[i] - (DWord)b[i] - c;
-        r[i] = z & W_MASK;
-        c = (z >> W_SZ) & 1;
+    for (i = 1; i < k; ++i){
+        n = a[i] + c; 
+        c = (c & (a[i] == n)) | (n < a[i]);
+        a[i] = n;
+    }
+    return c;
+}
+
+uint32_t sub(uint32_t *a, const uint32_t *b){
+    uint32_t c;
+    size_t i, k;
+
+    c = 0;
+    k = wordsize(a);
+    for(i = 0; i < k; ++i){
+        uint32_t n = a[i] - b[i] - c;
+        c = (c & (a[i] == n)) | (n > a[i]);
+        a[i] = c;
    }
    return c;
 }
 
-Word subw(Word *a, Word b, Word *r){
-    int i;
-    Word res[N_SZ];
-    copy(a, res);
-    DWord z = (DWord)res[0] - b;
-    res[0] = z & W_MASK;
-    Word c = (z >> W_SZ) & 1;
+uint32_t subw(uint32_t *a, const uint32_t b){
+    uint32_t c;
+    size_t i, k;
+    
+    k = wordsize(a);
+    uint32_t n = a[0] - b; 
+    c = (n < a[0]);
+    a[0] = n;
 
-    // propagate the subtraction carry up
-    for (i = 0; (i < N_SZ) && c; i++){
-        z = (DWord)res[i] - c;
-        res[i] = z & W_MASK;
-        c = (z >> W_SZ) & 1;
+    for (i = 1; i < k; ++i){
+        n = a[i] - c; 
+        c = (c & (a[i] == n)) | (n > a[i]);
+        a[i] = n;
     }
-
-    copy(res, r);
     return c;
 }
 
 /*
-    basic long-division
+    bitwise long division
 */
-Word qdiv(Word *a, Word *b, Word *pq, Word *pr){
-    if(zerop(b))
-        return 1;
-
-    Word q[N_SZ];
-    Word r[N_SZ];
-    zero(q);
-    load(r, 0);
+void long_div(const uint32_t *a, const uint32_t *b, 
+    uint32_t *pq, uint32_t *pr){
     
-    int i;
-    Word ha = highbit(a);
-
-    for(i = ha; i >= 0; --i){
+    bignum(q);
+    bignum(r);
+    size_t i, k;
+    
+    k = bitsize(a);
+    r[N_SZINFO] = 1;
+    q[N_SZINFO] = k;
+    for(i = k; i >= 0; --i){
         twice(r);
         set(0, sel(i, a), r);
         if(gte(r, b)){
-            subs(r, b);
+            sub(r, b);
             set(i, 1, q);
         }
     }
     if(pq)
         copy(q, pq);
     if(pr)
-    copy(r, pr);
-    return 0;
-}
-
-void split(Word *a, Word *hi, Word *lo){
-    int i;
-    for(i=N_SZ*2 - 1; i>=N_SZ; --i){
-        hi[i-N_SZ] = a[i];
-    }
-    for(i=N_SZ-1; i>=0; --i){
-        lo[i] = a[i];
-    }
+        copy(r, pr);
 }
 
 /*
-    Long multiplication
+    bitwise long multiplication
 */
-void mul(Word *a, Word *b, Word *hi, Word *lo){
-    int i,j;
+void long_mul(const uint32_t *a, const uint32_t *b, 
+    uint32_t *hi, uint32_t *lo){
+    
+    uint32_t z[N_SZ*2] = {0};
+    uint32_t c;
+    size_t i, j, k, l;
+    
+    k = wordsize(a);
+    l = wordsize(b);
 
-    Word wa = highbit(a)/W_SZ + 1;
-    Word wb = highbit(b)/W_SZ + 1;
-    DWord c;
-    Word z[N_SZ*2];
-    zerol(z, N_SZ*2);
-
-    for(i = 0; i < wa; i++){
+    for(i = 0; i < k; ++i){
         c = 0;
-        for(j = 0; j < wb; j++){
-            c = a[i];
-            c *= b[j];
-            c += z[i+j];
-            z[i+j] = c & W_MASK;
-            c = (c >> W_SZ) & W_MASK;
+        for(j = 0; j < l; j++){
+            uint64_t n = z[i+j] + c + (uint64_t)a[i] * (uint64_t)b[j]; 
+            z[i+j] = n & W_MASK;
+            c = (n >> W_SZ) & W_MASK;
         }
-        z[i+wb] = c & W_MASK;
+        z[i+l] = c;
     }
-    split(z, hi, lo);
-}
-
-/*
-    SELF-MODIFYING OPERATIONS
-*/
-
-Word adds(Word *a, Word *b){
-    return add(a, b, a);
-}
-
-Word subs(Word *a, Word *b){
-    return sub(a, b, a);
-}
-
-Word addws(Word *a, Word b){
-    return addw(a, b, a);
-}
-
-Word subws(Word *a, Word b){
-    return subw(a, b, a);
-}
-
-void muls(Word *a, Word *b, Word *hi){
-    return mul(a, b, hi, a);
+    dnum_split(z, hi, lo);
 }
 
 /*
     MODULAR OPERATIONS
 */
+void dnum_redc(const uint32_t *dn, const uint32_t *m,
+    uint32_t *r){
+        
+        bignum(z);
+        size_t i;
+
+        widen(z);
+        for(i = N_SZ*2; i >= 0; --i){
+            twice(z);
+            z[0] |= sel(i, m);
+            if(gte(z, m)){
+                sub(z, m);
+            }
+        }
+        copy(z,r);
+}
 
 /*
     an optimized inversion for the special case where
@@ -181,38 +169,52 @@ void muls(Word *a, Word *b, Word *hi){
     taken from Henry Warren's simplified version of the
     Stein GCD algorithm, from his note, "Montgomery Multiplication"
 */
-void n_mod_r(Word *n, Word *r, Word *n_inv, Word *r_inv){
-    Word u[N_SZ];
-    Word v[N_SZ];
-    Word alph[N_SZ];
-    Word beta[N_SZ];
-    Word c;
-
-    load(u, 1);
-    zero(v);
+void bo_invert(const uint32_t  *n, const uint32_t *r, 
+    uint32_t *n_inv, uint32_t *r_inv){
+    
+    bignum(u);
+    bignum(v);
+    bignum(alph);
+    bignum(beta);
+    addw(u, 1);
     copy(n, alph);
     copy(r, beta);
-
-    while(!(zerop(n))){
-        half(n);
+    
+    while(!(zerop(alph))){
+        half(alph);
         if(evenp(u)){
             half(u);
             half(v);
         } 
         else{
-            c = adds(u, beta);
+            widen(u);
+            widen(v);
+
+            uint32_t c = add(u, beta);
             half(u);
             set(N_BITS-1, c, u);
 
             half(v);
-            adds(v, alph);
+            add(v, alph);
         }
+    }
+
+    if(n_inv){
+        copy(u, n_inv);
+    }
+    if(r_inv){
+        copy(v, r_inv);
     }
 }
 
-void add_mo(Word *a, Word *b, Word *m, Word *r){
-    add(a, b, r);
-    if(gte(r,m)) subs(r, m);
+void add_mod(const uint32_t *a, const uint32_t *b, 
+    const uint32_t *m, uint32_t *r){
+    bignum(z);
+    copy(a,z);
+    add(z, b);
+    if(gte(z,m)) 
+        sub(z, m);
+    copy(z,r);
 }
 
 /*
@@ -221,125 +223,88 @@ void add_mo(Word *a, Word *b, Word *m, Word *r){
     everything up by m, and then possibly a final
     reduce
 */
-void sub_mo(Word *a, Word *b, Word *m, Word *r){
-    Word d[N_SZ];
-    zero(d);
+void sub_mod(const uint32_t *a, const uint32_t *b, 
+    const uint32_t *m, uint32_t *r){
+    uint32_t c;
+    bignum(z);
 
-    add(a, m, d);
-    subs(d, b);
-    if(gte(d,m)) subs(d, m);
-    copy(d, r);
+    copy(a,z);
+    c = sub(z, b);
+    if(c){
+        add(z, m);
+    }
+    copy(z, r);
 }
 
 /*
     slow non-Montgomery method
 */
-void mul_mo(Word *a, Word *b, Word *m, Word *r){
-    Word hi[N_SZ];
-    Word lo[N_SZ];
-    Word ms[N_SZ];
-    Word c;
-    zero(hi);
-    zero(lo);
-    copy(m, ms);
+void long_mul_mod(const uint32_t *a, const uint32_t *b, 
+    const uint32_t *m, uint32_t *r){
     
-    mul(a, b, hi, lo);
-    while(highbit(ms) != N_BITS - 1){
-        twice(ms);
-    }
-    while(!(zerop(hi))){
-        c = subs(lo, ms);
-        subws(hi, c);
-    }
-    while(gte(lo, m)){
-        while(highbit(ms) >= highbit(lo)){
-            half(ms);
+    uint32_t z[N_SZ*2] = {0};
+    size_t i, j, k, l;
+    
+    k = wordsize(a);
+    l = wordsize(b);
+
+    for(i = 0; i < k; ++i){
+        uint32_t c = 0;
+        for(j = 0; j < l; j++){
+            uint64_t n = z[i+j] + c + (uint64_t)a[i] * (uint64_t)b[j]; 
+            z[i+j] = n & W_MASK;
+            c = (n >> W_SZ) & W_MASK;
         }
-        subs(lo, ms);
+        z[i+l] = c;
     }
-    copy(lo, r);
+   
+    dnum_redc(z, m, r);
 }
 
-Word lsl(Word *a, Word n, Word *r){
-    int i;
+uint32_t lsl(uint32_t *a, const size_t n){
+    size_t i, k;
+    uint32_t c;
 
-    Word z = a[N_SZ - 1] >> (W_SZ - n);
+    k = N_SZ - 1;
+    c = 0;
+    for(i = 0; i < k; ++i){
+        uint32_t z = (a[i] << n) | c;
+        c = a[i] >> (W_SZ - n);
+        a[i] = z;
+    }
+
+    return c;
+};
+
+uint32_t lsr(uint32_t *a, const size_t n){
+    size_t i;
+    uint32_t c;
+
+    c = 0;
+    for(i = N_SZ - 1; i >= 0; --i){
+        uint32_t z = c | (a[i] >> n);
+        c = a[i] << (W_SZ - n);
+        a[i] = z;
+    }
     
-    for(i = N_SZ - 1; i > 0; --i){
-        r[i] = (a[i] << n) | (a[i-1] >> (W_SZ - n));
-    }
-
-    r[0] = a[0] << n;
-
-    return z;
+    return c;
 };
 
-Word lsr(Word *a, Word n, Word *r){
-    int i;
+uint32_t zerop(const uint32_t *a){
+    size_t i;
 
-    Word z = a[0] << (W_SZ - n);
-
-    for(i = 0; i < N_SZ - 1; i++){
-        r[i] = (a[i] >> n) | (a[i+1] << (W_SZ - n));
-    }
-
-    r[N_SZ - 1] = a[N_SZ - 1] >> n;
-};
-
-Word lsls(Word *a, Word b){
-    return lsl(a, b, a);
-}
-
-Word lsrs(Word *a, Word b){
-    return lsr(a, b, a);
-}
-
-Word sel(Word p, Word *b){
-    Word idx = p / W_SZ;
-    Word bit = p % W_SZ;
-    Word res = (b[idx] >> bit) & 1;
-    return res;
-}
-
-void set(Word p, Word a, Word *b){
-   Word idx = p / W_SZ;
-   Word bit = p % W_SZ;
-   b[idx] &= ~(a << bit);
-   b[idx] |=  (a << bit);
-}
-
-void andb(Word *a, Word *b, Word *r){
-    int i;
-    for(i = 0; i < N_SZ; i++){
-        r[i] = a[i] & b[i];
-    }
-}
-
-void xorb(Word *a, Word *b, Word *r){
-    int i;
-    for(i = 0; i < N_SZ; i++){
-        r[i] = a[i] ^ b[i];
-    }
-}
-
-Word zerop(Word *a){
-    int i;
-    for (i = 0; i < N_SZ; i++){
+    /*
+        we want to check the N_GUARD as well, so we go up to N_SZ
+    */
+    for (i = 0; i <= N_SZ; i++){
         if(a[i] != 0) return 0;
     }
     return 1;
 }
 
-Word evenp(Word *a){
-    return (!(a[0] & 1));
-}
-
-Word oddp(Word *a){
-    return a[0] & 1;
-}
-
-Word highbit(Word *a){
-    int i, j;
+size_t highbit(const uint32_t *a){ 
+    size_t i, j;
+    
     for(i = N_SZ - 1; i >= 0; --i){
         if(a[i] == 0){
             continue;
@@ -353,35 +318,22 @@ Word highbit(Word *a){
     return 0;
 }
 
-Word gte(Word *a, Word *b){
-    Word ha = highbit(a);
-    Word hb = highbit(b);
-
-    if (ha > hb)
-        return 1;
-    if (ha < hb)
-        return 0;
-
-    int i = ha/W_SZ;
-    for(i; i >= 0; --i){
-        if (a[i] == b[i])
+uint32_t gte(const uint32_t *a, const uint32_t *b){
+    size_t i;
+    
+    for(i = N_SZ - 1; i >= 0; --i){
+        if(a[i] == b[i]){
             continue;
-        if (a[i] < b[i])
-            return 0;
-        return 1;
+        }
+        return (a[i] > b[i]);
     }
     return 1;
 }
 
-Word equ(Word *a, Word *b){
-    Word ha = highbit(a);
-    Word hb = highbit(b);
-    
-    if (ha != hb)
-        return 0;
+uint32_t equ(const uint32_t *a, const uint32_t *b){
+    size_t i;
 
-    int i = ha/W_SZ;
-    for(i; i >= 0; --i){
+    for(i = N_SZ - 1; i >= 0; --i){
         if (a[i] != b[i]){
             return 0;
         }
@@ -389,28 +341,24 @@ Word equ(Word *a, Word *b){
     return 1;
 }
 
-Word half(Word *a){
-    return lsrs(a, 1);
+uint32_t half(uint32_t *a){
+    return lsr(a, 1);
 }
 
-Word twice(Word *a){
-    return lsls(a, 1);
+uint32_t twice(uint32_t *a){
+    return lsl(a, 1);
 }
 
-void load(Word *a, Word val){
-    zero(a);
-    addws(a, val);
-}
+void print_num(const uint32_t *a){
+    size_t i;
 
-void print_num(Word *a){
-    int i;
     if(N_SZ > 2) {
         i = highbit(a) / W_SZ;
     }
     else {
         i = N_SZ - 1;
     }
-    for(i; i >= 0; --i){
+    for(; i >= 0; --i){
         printf("%#10.8x ", a[i]);
         if(!(i % 8))
             printf("\n");

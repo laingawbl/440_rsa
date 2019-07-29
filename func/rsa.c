@@ -5,7 +5,7 @@
 #include <time.h>
 
 /*
-    Functional, unoptimised implementation of the RSA encryption and
+    Functional, optimised implementation of the RSA encryption and
     decryption primitives (except for whatever simple improvements I couldn't
     help but make, absent gprof or assembly examination).
 
@@ -30,41 +30,33 @@ void die(const char * what){
 
     [ au + bv = 1 ] < = > [au = 1 (mod b)
 */
-Word euclid_inv(Word *a, Word *m, Word *r){
+uint32_t euclid_inv(uint32_t *a, uint32_t *m, uint32_t *r){
+    bignum(t0);
+    bignum(t1);
+    bignum(r0);
+    bignum(r1);
+    bignum(quo);
+    bignum(tmp);
     
-    Word t0[N_SZ];
-    Word t1[N_SZ];
-    Word r0[N_SZ];
-    Word r1[N_SZ];
-    Word quo[N_SZ];
-    Word tmp[N_SZ];
-
-    load(t0, 0);
-    load(t1, 1);
+    addw(t1, 1);
     copy(m, r0);
     copy(a, r1);
-    zero(quo);
-    zero(tmp);
-   
-    int i = 0;
-    while(!(zerop(r1)) && (i < 12)){
-        qdiv(r0, r1, quo, tmp);
+    while(!(zerop(r1))){
+        long_div(r0, r1, quo, tmp);
         
         //(t0, t1) <= (t1, t0 - q*t1)
         copy(t1, tmp);
         copy(t0, t1);
         copy(tmp, t0);
-        mul_mo(tmp, quo, m, tmp);
-        sub_mo(t1,  tmp, m, t1);
+        long_mul_mod(tmp, quo, m, tmp);
+        sub_mod(t1,  tmp, m, t1);
 
         //(r0, r1) <= (r1, r0 - q*r1)
         copy(r1, tmp);
         copy(r0, r1);
         copy(tmp, r0);
-        mul_mo(tmp, quo, m, tmp);
-        sub_mo(r1,  tmp, m, r1);
-
-        i++;
+        long_mul_mod(tmp, quo, m, tmp);
+        sub_mod(r1,  tmp, m, r1);
     }
     copy(t0, r);
     
@@ -87,39 +79,40 @@ Word euclid_inv(Word *a, Word *m, Word *r){
         e /= 2
         
 */
-void spow_nn(Word *pb, Word *pe, Word *m, Word *r){
+void spow_nn(uint32_t *pb, uint32_t *pe, uint32_t *m, uint32_t *r){
    
-   Word e[N_SZ];
-   Word b[N_SZ];
-   Word z[N_SZ];
-   copy(pb, b);
-   copy(pe, e);
-   load(z, 1);
-   
-   if(zerop(e)){
+   bignum(e);
+   bignum(b);
+   bignum(z);
+  
+   addw(z, 1);
+   if(zerop(pe)){
         copy(z, r);
         return;
    }
-
+   
+   copy(pb, b);
+   copy(pe, e);
+ 
    while(highbit(e) > 0){
         if(oddp(e)){
-            mul_mo(b, z, m, z);
-            mul_mo(b, b, m, b);
-            subws(e, 1);
+            long_mul_mod(b, z, m, z);
+            long_mul_mod(b, b, m, b);
+            subw(e, 1);
             half(e);
         }
         else {
-            mul_mo(b, b, m, b);
+            long_mul_mod(b, b, m, b);
             half(e);
         }
    }
-   mul_mo(b, z, m, r); 
+   long_mul_mod(b, z, m, r); 
 }
 
 /*
     fill words 0 through [max] of n with pseudorandom data from random()
 */
-void load_random(Word max, Word *n){
+void load_random(uint32_t max, uint32_t *n){
     int i;
     zero(n);
     for(i = 0; i < max; i++){
@@ -127,19 +120,16 @@ void load_random(Word max, Word *n){
     }
 }
 
-Word rabin_test(Word k, Word *n){
-    Word max = PRIME_BITS / W_SZ;
-
-    Word a[N_SZ];
-    Word x[N_SZ];
-    Word d[N_SZ];
-    zero(d);
-    zero(x);
-    zero(a);
-    Word r = 0;
-    int i, j;
-
-    subw(n, 1, d);
+uint32_t rabin_test(uint32_t k, uint32_t *n){
+    size_t i, j, l;
+    bignum(a);
+    bignum(d);
+    bignum(x);
+    uint32_t r = 0;
+    
+    l = wordsize(n);
+    copy(n, d);
+    subw(d, 1);
     while(evenp(d)){
         half(d);
         r += 1;
@@ -148,10 +138,10 @@ Word rabin_test(Word k, Word *n){
     for(i = 0; i < k; i++){
 
         do {
-            load_random(max, a);
-            addws(a, 4);
+            load_random(l, a);
+            addw(a, 4);
         } while(gte(a, n));
-        subws(a, 2);
+        subw(a, 2);
         
         spow_nn(a, d, n, x);
          
@@ -161,19 +151,21 @@ Word rabin_test(Word k, Word *n){
         }
 
         // if x = n-1 (represented by now unused a), continue
-        subw(n, 1, a);
+        copy(n, a);
+        subw(a, 1);
         if(equ(x,a)){ 
            continue;
         }
         
         for(j = 0; j < r; j++){
-            mul_mo(x, x, n, x);
+            long_mul_mod(x, x, n, x);
             if(equ(x,a)){ 
                 break;
             }
         }
-        if(j == r) 
+        if(j == r){
             return 0;
+        }
     }
     return 1;
 }
@@ -187,27 +179,26 @@ Word rabin_test(Word k, Word *n){
     the upper bound becomes much smaller when k >= b/4 (so in the case of
     a 4096-bit key, b=2048, and so set k >= 512)
 */
-void load_miller_rabin(Word k, Word *p){
-    Word max = PRIME_BITS / W_SZ;
-    /*
-        TODO: replace this if i figure out where the urandom is on arm32
-    */
+void load_miller_rabin(uint32_t k, uint32_t *p){
+    bignum(n);
+    size_t i, j;
     struct timespec t;
+
     clock_gettime(CLOCK_MONOTONIC, &t);
-    srandom(t.tv_sec ^ t.tv_nsec);
-    int i;
-    Word n[N_SZ];
-    load_random(max, n);
+    srandom(t.tv_sec ^ t.tv_nsec);;
+
+    j = PRIME_BITS / W_SZ;
+    load_random(j, n);
     set(0, 1, n); //enforce that n is odd
     set(PRIME_BITS-1, 1, n); //enforce that n > 2^b-1
-    for(i=0; i < 4*N_BITS; i++){             
+    for(i=0; i < N_BITS; ++i){             
         if(rabin_test(k, n)){
             copy(n, p);
             return;
         }
-        addws(n, max); //max ~= ln(2^b)
+        addw(n, j); //max ~= ln(2^b)
     }
-    die("tried 4*N_BITS numbers with no luck!\n");
+    die("tried N_BITS numbers with no luck!\n");
 }
 
 /* 
@@ -216,53 +207,40 @@ void load_miller_rabin(Word k, Word *p){
         k->e in [3, n-1] in Z, s.t. 
             gcd(e, \lambda(p)) === gcd(e, lcm(p-1, q-1)) = 1
 */
-void rsaep(rsa_pub *k, Word *m, Word *c){
+void rsaep(rsa_pub *k, uint32_t *m, uint32_t *c){
     if(gte(m, k->n)){
         die("message too large for this exponent!\n");
     }
     spow_nn(m, k->e, k->n, c);    
 }
 
-void rsadp(rsa_pri *k, Word *c, Word *m){ 
+void rsadp(rsa_pri *k, uint32_t *c, uint32_t *m){ 
     if(gte(m, k->n)){
         die("cipher too large for this exponent!\n");
     }
     spow_nn(c, k->d, k->n, m);
 }
 
-void genkeys(Word exp, Word mr_rounds, rsa_pub *ke, rsa_pri *kd){
-    
-    Word a[N_SZ];
-    Word b[N_SZ];
-    Word e[N_SZ];
-    Word d[N_SZ];
-    Word n[N_SZ];
+void genkeys(uint32_t exp, uint32_t mr_rounds, rsa_pub *ke, rsa_pri *kd){
+    uint32_t quot; 
+    bignum(a);
+    bignum(b);
+    bignum(e);
+    bignum(d);
+    bignum(n);
 
-    zero(a);
-    zero(b);
-    load(e, exp);
-    zero(d);
-    zero(n);
-
-    Word quot;
+    addw(e, exp);
     do {
         // pick two PRIME_BITS-length primes through miller-rabin testing
         load_miller_rabin(mr_rounds, a);
         load_miller_rabin(mr_rounds, b);
-        mul(a, b, d, n);
-        printf("calculated n\n");
-        if(!zerop(d)){
-            die("key too large for word size!");
-        }
+        long_mul(a, b, d, n);
         zero(d);
         
         // calculate phi(n) = (a-1)(b-1), overwriting secret b as we do so
-        subws(a, 1);
-        subws(b, 1);
-        mul(a, b, a, b);
-        if(!zerop(a)){
-            die("key too large for word size!");
-        }
+        subw(a, 1);
+        subw(b, 1);
+        long_mul(a, b, a, b);
         printf("calculated phi\n");
 
         // [ (exp) is unit (mod phi(n)) ] <=> [ d = inv(exp), quot = 0 ].
@@ -288,8 +266,8 @@ int rsa_enc(rsa_pub *ke, char *m, int len, char *c){
         return 0;
     }
     
-    Word mr[N_SZ];
-    Word cr[N_SZ];
+    uint32_t mr[N_SZ];
+    uint32_t cr[N_SZ];
     
     zero(mr);
     zero(cr);
@@ -305,8 +283,8 @@ int rsa_enc(rsa_pub *ke, char *m, int len, char *c){
 
 int rsa_dec(rsa_pri *kd, char *c, char *m){ 
     
-    Word mr[N_SZ];
-    Word cr[N_SZ];
+    uint32_t mr[N_SZ];
+    uint32_t cr[N_SZ];
     
     zero(mr);
     zero(cr);

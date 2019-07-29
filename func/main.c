@@ -87,9 +87,9 @@ eedom to hold opinions without interference and to seek, receive";
     int ok = 0;
     int bad = 0;
 
-    genkeys(EXP_DEFAULT, 128, &ke, &kd);
+    genkeys(EXP_DEFAULT, 256, &ke, &kd);
 
-    printf("setup keys with %d-bit modulus:\n", highbit(ke.n));
+    printf("setup keys with %lu-bit modulus:\n", highbit(ke.n));
     print_num(ke.n);
     printf("processing message of %d bytes\n", mlen);
 
@@ -107,12 +107,14 @@ eedom to hold opinions without interference and to seek, receive";
             if(out[j] != in[j])
                 match = 0;
         }
-        if(match)
+        if(match){
             ok++;
-        else
+            printf("%s\n", out);
+        }
+        else{
             bad++;
-
-        printf("%s\n", out);
+        }
+        
         p += SYM_SZ-4;
         if((p-msg) >= mlen)
             break;
@@ -122,7 +124,7 @@ eedom to hold opinions without interference and to seek, receive";
 }
 
 void keytest(){
-    Word a[N_SZ];
+    uint32_t a[N_SZ];
 
     int i;
     
@@ -137,40 +139,30 @@ void multest(){
     clock_gettime(CLOCK_MONOTONIC, &t);
     srandom(t.tv_sec ^ t.tv_nsec);
  
-    Word a[N_SZ];
-    Word b[N_SZ];
-    Word hi[N_SZ];
-    Word lo[N_SZ];
-    Word q[N_SZ];
-    Word r[N_SZ];
+    bignum(a);
+    bignum(b);
+    bignum(m);
+    bignum(lo);
 
-    zero(a);
-    zero(b);
-    zero(q);
-    zero(r);
+    int i, j;
+    for(i = 1; i <= 4; i++){
+        for(j = 1; j <= 4; j++){
+            zero(a);
+            zero(b);
+            zero(m);
 
-    load_random(N_SZ, a);
-    load_random(N_SZ, b);
-
-    print_num(a);
-    print_num(b);
-    mul(a, b, hi, lo);
-    printf("mul\n");
-    print_num(hi);
-    print_num(lo);
-
-    qdiv(hi, b, q, r);
-    printf("div hi\n");
-    print_num(q);
-    print_num(r);
-
-    qdiv(lo, b, q, r);
-    printf("div lo\n");
-    print_num(q);
-    print_num(r);
+            load_random(2, a);
+            load_random(2, b);
+            load_random(1, m);
+            long_mul_mod(a,b,m,lo);
+            printf("  %#10.8x %#10.8x\n* %#10.8x %#10.8x\
+= %#10.8x %#10.8x : %#10.8x %#10.8x\n\n", 
+                a[1], a[0], b[1], b[0], m[1], m[0], lo[1], lo[0]); 
+        }
+    }
 }
 
 int main(){
-    msgtest();
+    multest();
     return 0;
 }
