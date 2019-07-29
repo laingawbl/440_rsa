@@ -1,10 +1,13 @@
 #include "bignum.h"
-
-void zero(Word *n){
+void zerol(Word *n, int l){
     int i;
-    for (i = 0; i < N_SZ; ++i){
+    for (i = 0; i < l; ++i){
         n[i] = 0;
     }
+}
+
+void zero(Word *n){
+    zerol(n, N_SZ);
 }
 
 void copy(Word *fr, Word *to){
@@ -96,35 +99,47 @@ Word qdiv(Word *a, Word *b, Word *pq, Word *pr){
             set(i, 1, q);
         }
     }
-    copy(q, pq);
+    if(pq)
+        copy(q, pq);
+    if(pr)
     copy(r, pr);
     return 0;
 }
 
-/*
-    Peasant Method multiplication
-    does NO bounds checking - you will get a garbage result if
-        highbit(a) + highbit(b) > N_BITS
-    but this will be communicated by returning the overflow as 1.
-*/
-Word mul(Word *a, Word *b, Word *r){
-    Word ha = highbit(a);
-    Word c = 0;
-
+void split(Word *a, Word *hi, Word *lo){
     int i;
-    Word rz[N_SZ];
-    zero(rz);
-    Word bz[N_SZ];
-    copy(b, bz);
-
-    for(i = 0; i <= ha; i++){
-        if(sel(i, a)){
-            c |= adds(rz, bz);
-        }
-        twice(bz);
+    for(i=N_SZ*2 - 1; i>=N_SZ; --i){
+        hi[i-N_SZ] = a[i];
     }
-    copy(rz, r);
-    return c;
+    for(i=N_SZ-1; i>=0; --i){
+        lo[i] = a[i];
+    }
+}
+
+/*
+    Long multiplication
+*/
+void mul(Word *a, Word *b, Word *hi, Word *lo){
+    int i,j;
+
+    Word wa = highbit(a)/W_SZ + 1;
+    Word wb = highbit(b)/W_SZ + 1;
+    DWord c;
+    Word z[N_SZ*2];
+    zerol(z, N_SZ*2);
+
+    for(i = 0; i < wa; i++){
+        c = 0;
+        for(j = 0; j < wb; j++){
+            c = a[i];
+            c *= b[j];
+            c += z[i+j];
+            z[i+j] = c & W_MASK;
+            c = (c >> W_SZ) & W_MASK;
+        }
+        z[i+wb] = c & W_MASK;
+    }
+    split(z, hi, lo);
 }
 
 /*
@@ -147,13 +162,53 @@ Word subws(Word *a, Word b){
     return subw(a, b, a);
 }
 
-Word muls(Word *a, Word *b){
-    return mul(a, b, a);
+void muls(Word *a, Word *b, Word *hi){
+    return mul(a, b, hi, a);
 }
 
 /*
     MODULAR OPERATIONS
 */
+
+/*
+    an optimized inversion for the special case where
+    (1) n is a power of 2 (of the form (100....0000)b)
+    (2) r is odd
+
+    returns n_inv, r_inv s.t.
+    n(n_inv) + r(r_inv) = 1
+
+    taken from Henry Warren's simplified version of the
+    Stein GCD algorithm, from his note, "Montgomery Multiplication"
+*/
+void n_mod_r(Word *n, Word *r, Word *n_inv, Word *r_inv){
+    Word u[N_SZ];
+    Word v[N_SZ];
+    Word alph[N_SZ];
+    Word beta[N_SZ];
+    Word c;
+
+    load(u, 1);
+    zero(v);
+    copy(n, alph);
+    copy(r, beta);
+
+    while(!(zerop(n))){
+        half(n);
+        if(evenp(u)){
+            half(u);
+            half(v);
+        } 
+        else{
+            c = adds(u, beta);
+            half(u);
+            set(N_BITS-1, c, u);
+
+            half(v);
+            adds(v, alph);
+        }
+    }
+}
 
 void add_mo(Word *a, Word *b, Word *m, Word *r){
     add(a, b, r);
@@ -177,29 +232,33 @@ void sub_mo(Word *a, Word *b, Word *m, Word *r){
 }
 
 /*
-    The same method as lmul, but with correction modulo m at each step.
-    We shift the result rz to preserve the value of bz.
+    slow non-Montgomery method
 */
 void mul_mo(Word *a, Word *b, Word *m, Word *r){
-    int i;
-    Word rz[N_SZ];
-    zero(rz);
-
-    Word bz[N_SZ];
-    copy(b, bz);
+    Word hi[N_SZ];
+    Word lo[N_SZ];
+    Word ms[N_SZ];
+    Word c;
+    zero(hi);
+    zero(lo);
+    copy(m, ms);
     
-    for(i = N_BITS - 1; i >= 0; --i){ 
-        twice(rz);
-        if(gte(rz, m))
-            subs(rz, m);
-        if(sel(i, a))
-            adds(rz, bz);
-        if(gte(rz, m))
-            subs(rz, m);
+    mul(a, b, hi, lo);
+    while(highbit(ms) != N_BITS - 1){
+        twice(ms);
     }
-    copy(rz, r);
+    while(!(zerop(hi))){
+        c = subs(lo, ms);
+        subws(hi, c);
+    }
+    while(gte(lo, m)){
+        while(highbit(ms) >= highbit(lo)){
+            half(ms);
+        }
+        subs(lo, ms);
+    }
+    copy(lo, r);
 }
-
 
 Word lsl(Word *a, Word n, Word *r){
     int i;
@@ -330,12 +389,12 @@ Word equ(Word *a, Word *b){
     return 1;
 }
 
-void half(Word *a){
-    lsrs(a, 1);
+Word half(Word *a){
+    return lsrs(a, 1);
 }
 
-void twice(Word *a){
-    lsls(a, 1);
+Word twice(Word *a){
+    return lsls(a, 1);
 }
 
 void load(Word *a, Word val){

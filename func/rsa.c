@@ -137,9 +137,6 @@ Word rabin_test(Word k, Word *n){
     zero(x);
     zero(a);
     Word r = 0;
-    Word wits[] = {
-        2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41
-    };
     int i, j;
 
     subw(n, 1, d);
@@ -252,13 +249,21 @@ void genkeys(Word exp, Word mr_rounds, rsa_pub *ke, rsa_pri *kd){
         // pick two PRIME_BITS-length primes through miller-rabin testing
         load_miller_rabin(mr_rounds, a);
         load_miller_rabin(mr_rounds, b);
-        mul(a, b, n);
+        mul(a, b, d, n);
+        printf("calculated n\n");
+        if(!zerop(d)){
+            die("key too large for word size!");
+        }
+        zero(d);
         
         // calculate phi(n) = (a-1)(b-1), overwriting secret b as we do so
         subws(a, 1);
         subws(b, 1);
-        mul(a, b, b);
-        zero(a);
+        mul(a, b, a, b);
+        if(!zerop(a)){
+            die("key too large for word size!");
+        }
+        printf("calculated phi\n");
 
         // [ (exp) is unit (mod phi(n)) ] <=> [ d = inv(exp), quot = 0 ].
         quot = euclid_inv(e, b, d);

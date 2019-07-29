@@ -2,6 +2,8 @@
 #include "rsa.h"
 #include<stdio.h>
 #include<string.h>
+#include<stdlib.h>
+#include<time.h>
 
 void msgtest(){
 
@@ -128,6 +130,44 @@ void keytest(){
         load_miller_rabin(64, a);
     }
 
+}
+
+void multest(){
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    srandom(t.tv_sec ^ t.tv_nsec);
+ 
+    Word a[N_SZ];
+    Word b[N_SZ];
+    Word hi[N_SZ];
+    Word lo[N_SZ];
+    Word q[N_SZ];
+    Word r[N_SZ];
+
+    zero(a);
+    zero(b);
+    zero(q);
+    zero(r);
+
+    load_random(N_SZ, a);
+    load_random(N_SZ, b);
+
+    print_num(a);
+    print_num(b);
+    mul(a, b, hi, lo);
+    printf("mul\n");
+    print_num(hi);
+    print_num(lo);
+
+    qdiv(hi, b, q, r);
+    printf("div hi\n");
+    print_num(q);
+    print_num(r);
+
+    qdiv(lo, b, q, r);
+    printf("div lo\n");
+    print_num(q);
+    print_num(r);
 }
 
 int main(){

@@ -54,4 +54,5 @@ int rsa_enc(rsa_pub *ke, char *m, int len, char *c);
 int rsa_dec(rsa_pri *kd, char *c, char *m);
 
 void load_miller_rabin(Word k, Word *p);
+void load_random(Word max, Word *n);
 #endif

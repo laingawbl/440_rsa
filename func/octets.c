@@ -8,6 +8,45 @@ unsigned long long to_dec(Word *a){
     return (((unsigned long long)a[1] << W_SZ) | a[0]);
 }
 
+int u82osp(Word *num, int upper, char *oct){
+    int i;
+    for(i = 0; i < upper; i++){
+        oct[i] = num[i];
+    }
+    return upper;
+}
+
+int u162osp(Word *num, int upper, char *oct){
+    int i;
+    for(i = 0; i < upper; i++){
+        if(i%2 == 0)
+            oct[i] =  num[i/2]       & 0xff;
+        else
+            oct[i] = (num[i/2] >> 8) & 0xff;
+    }
+    return upper;
+}
+
+int u322osp(Word *num, int upper, char *oct){
+    int i;
+    for(i = 0; i < upper; i++){
+        switch(i%4){
+        case 0:
+            oct[i] =  num[i/4]        & 0xff;
+            break;
+        case 1:
+            oct[i] = (num[i/4] >> 8)  & 0xff;
+            break;
+        case 2:
+            oct[i] = (num[i/4] >> 16) & 0xff;
+            break;
+        case 3:
+            oct[i] = (num[i/4] >> 24) & 0xff;
+       }
+    }
+    return upper;
+}
+
 int i2osp(Word *num, int len, char *oct){
     int hibyte = (highbit(num)+7)/8;
     if(hibyte > len){
@@ -15,42 +54,69 @@ int i2osp(Word *num, int len, char *oct){
             hibyte, len);
         return 0;
     }
-    int hiword = hibyte/WHICH_WORD;
-    int rem = hibyte-(hiword*WHICH_WORD);
+
+    if(WHICH_WORD == 1)
+        return u82osp(num, hibyte, oct);
+    else if (WHICH_WORD == 2)
+        return u162osp(num, hibyte, oct);
+    else if (WHICH_WORD == 4)
+        return u322osp(num, hibyte, oct);
+    else
+        return 0;
+}
+
+int os2u8p(char *oct, int upper, Word *num){
     int i;
+    for(i=0; i<upper; i++){
+        num[i] = oct[i];
+    }
+    return upper;
+}
 
-    for(i = 0; i < hiword; i++){
-#if (WHICH_WORD == 1)
-        oct[i] = num[i];
-#elif (WHICH_WORD == 2)
-        oct[2*i] = num[i] & 0xff;
-        oct[2*i + 1] = (num[i] >> 8) & 0xff;
-#elif (WHICH_WORD == 4)
-        oct[4*i] = num[i] & 0xff;
-        oct[4*i + 1] = (num[i] >> 8) & 0xff;
-        oct[4*i + 2] = (num[i] >> 16) & 0xff;
-        oct[4*i + 3] = (num[i] >> 24) & 0xff;
-#endif
-    }
+/*
+     0   2   4   6
+    [a b c d e f g ...] =>
+    [ba][dc][fe][..g]..
+     0       2
+*/
 
-#if (WHICH_WORD == 1)
-    if(rem)
-        oct[hiword + 1] = num[hiword];
-#elif (WHICH_WORD == 2)
-    if(rem)
-        oct[2*hiword + 1] = num[hiword] & 0xff;
-#elif(WHICH_WORD == 4)
-    if(rem > 0){
-        oct[4*hiword] = num[hiword] & 0xff;
+int os2u16p(char *oct, int upper, Word *num){
+    int i;
+    Word g;
+    for(i=0; i<upper; i++){
+        if(i%2 == 0){
+            num[i/2] = oct[i];
+        }
+        else{
+            g = oct[i];
+            num[i/2] += (g << 8);
+        }
     }
-    if(rem > 1){
-        oct[4*hiword + 1] = (num[hiword] >> 8) & 0xff;
+    return upper;
+}
+
+int os2u32p(char *oct, int upper, Word *num){
+    int i;
+    Word g;
+    for(i=0; i<upper; i++){
+        switch(i%4){
+            case 0:
+                num[i/4] = oct[i];
+                break;
+            case 1:
+                g = oct[i];
+                num[i/4] += (g << 8);
+                break;
+            case 2:
+                g = oct[i];
+                num[i/4] += (g << 16);
+                break;
+            case 3:
+                g = oct[i];
+                num[i/4] += (g << 24);
+        }
     }
-    if(rem > 2){
-        oct[4*hiword + 2] = (num[hiword] >> 16) & 0xff;
-    }
-#endif
-    return hibyte;
+    return upper;
 }
 
 int os2ip(char *oct, int len, Word *num){
@@ -60,46 +126,14 @@ int os2ip(char *oct, int len, Word *num){
         return 0;
     }
 
-    int hiword = len/WHICH_WORD;
-    int rem = len-(hiword*WHICH_WORD);
-    int i;
+    if(WHICH_WORD == 1)
+        return os2u8p(oct, len, num);
+    else if (WHICH_WORD == 2)
+        return os2u16p(oct, len, num);
+    else if (WHICH_WORD == 4)
+        return os2u32p(oct, len, num);
+    else
+        return 0;
 
-    for(i = 0; i < hiword; i++){
-#if (WHICH_WORD == 1)
-        num[i] = oct[i];
-#elif (WHICH_WORD == 2)
-        num[i] = oct[2*i + 1];
-        num[i] <<= 8;
-        num[i] += oct[2*i] & 0xff;
-#elif (WHICH_WORD == 4)
-        num[i] = oct[4*i + 3];
-        num[i] <<= 8;
-        num[i] += oct[4*i + 2] & 0xff;
-        num[i] <<= 8;
-        num[i] += oct[4*i + 1] & 0xff;
-        num[i] <<= 8;
-        num[i] += oct[4*i] & 0xff;
-#endif
-    }
-
-#if (WHICH_WORD == 2)
-    if(rem)
-        num[hiword] = oct[2*hiword];
-#elif (WHICH_WORD == 4)
-    if(rem)
-        num[hiword] = 0;
-    if(rem > 2){
-        num[hiword] = oct[4*hiword + 2] & 0xff;
-        num[hiword] <<= 8;
-    }
-    if(rem > 1){
-        num[hiword] += oct[2*hiword + 1] & 0xff;
-        num[hiword] <<= 8;
-    }
-    if(rem > 0){
-        num[hiword] += oct[2*hiword + 2] & 0xff;
-    }
-#endif
-    return len;
 }
 

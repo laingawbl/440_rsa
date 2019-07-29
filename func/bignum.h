@@ -4,7 +4,7 @@
 #include<stdint.h>
 #include<stdio.h>
 
-#define N_BITS 256
+#define N_BITS 128
 #define WHICH_WORD 4
 
 /*
@@ -40,7 +40,7 @@
     #error must define WHICH_WORD in {1, 2, 4} bytes
 #endif
 
-#define N_SZ (N_BITS / W_SZ) + 1 
+#define N_SZ (N_BITS / W_SZ) 
 
 typedef WORD_T  Word;
 typedef DWORD_T DWord;
@@ -71,7 +71,7 @@ Word subw(Word *a, Word  b, Word *r);
 // long-divide Word by Word (quotient and remainder)
 Word qdiv(Word *a, Word *b, Word *q, Word *r);
 // long-multiply Word by Word
-Word mul(Word *a, Word *b, Word *r);
+void mul(Word *a, Word *b, Word *hi, Word *lo);
 
 /*
     syntactic sugar for the above with a=r explicitly
@@ -80,7 +80,7 @@ Word adds(Word *a, Word *b);
 Word addws(Word *a, Word b);
 Word subs(Word *a, Word *b);
 Word subws(Word *a, Word b);
-Word lmuls(Word *a, Word *b);
+void muls(Word *a, Word *b, Word *hi);
 
 // add/sub with correction modulo m (assumes 0 <= a,b < m)
 void add_mo(Word *a, Word *b, Word *m, Word *r);
@@ -124,8 +124,8 @@ Word equ(Word *a, Word *b);
 /*
     sugar for lsl/lsr(a, 1).
 */
-void half(Word *a);
-void twice(Word *a);
+Word half(Word *a);
+Word twice(Word *a);
 
 /*
     zero followed by addw.

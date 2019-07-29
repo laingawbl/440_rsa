@@ -1,5 +1,5 @@
-CC=arm-linux-gnueabi-gcc
-CFLAGS=-I. -O3 -pg
+CC=gcc
+CFLAGS=-I. -O3
 DEPS=octets.h bignum.h rsa.h
 
 %.o: %.c $(DEPS)
