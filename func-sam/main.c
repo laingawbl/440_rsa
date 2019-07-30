@@ -94,14 +94,14 @@ eedom to hold opinions without interference and to seek, receive";
     for(;;){
         memset(ciph, 0, SYM_SZ);
         memset(out, 0, SYM_SZ);
-        strncpy(in, p, SYM_SZ/2);
+        strncpy(in, p, SYM_SZ-4);
 
-        rsa_enc(&ke, in, SYM_SZ/2, ciph);
+        rsa_enc(&ke, in, SYM_SZ-4, ciph);
        
         rsa_dec(&kd, ciph, out);
         
         int match = 1;
-        for(j = 0; j < SYM_SZ/2; j++){
+        for(j = 0; j < SYM_SZ-4; j++){
             if(out[j] != in[j])
                 match = 0;
         }
@@ -110,7 +110,7 @@ eedom to hold opinions without interference and to seek, receive";
         else
             bad++;
 
-        p += SYM_SZ/2;
+        p += SYM_SZ-4;
         if((p-msg) >= mlen)
             break;
     }
