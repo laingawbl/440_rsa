@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define N_BITS 128
+#define N_BITS 512
 #define W_BITS 32
 #define W_SZ   4
 #define N_SZ   (((N_BITS)+(W_BITS-1)) / (W_BITS))
@@ -37,6 +37,13 @@ static inline void pf4(const char *name, const uint32_t *what){
     printf("%s=\t%#10.8x %#10.8x:%#10.8x %#10.8x\n", 
     name, what[3], what[2], what[1], what[0]);
 }
+
+static inline void pf8(const char *name, const uint32_t *what){
+    printf("%s=\t%#10.8x %#10.8x:%#10.8x %#10.8x:%#10.8x %#10.8x:%#10.8x %#10.8x\n", 
+    name, what[7], what[6], what[5], what[4],
+          what[3], what[2], what[1], what[0]);
+}
+
 
 /*
     initialise a Montgomery-arithmetic system with R = 2^(N_BITS). that means

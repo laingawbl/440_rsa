@@ -54,7 +54,7 @@ void full_mul(const uint32_t *a, const uint32_t *b, uint32_t *r){
     
     int i, j;
     uint32_t c;
-    uint32_t z[N_SZ*2];
+    uint32_t z[N_SZ*2] = {0};
     
     for(i = 0; i < N_SZ; i++){
         c = 0;
@@ -91,6 +91,50 @@ uint32_t sub(uint32_t *a, const uint32_t * b){
         a[k] = n;
     }
     return c;
+}
+
+uint32_t dadd(uint32_t *a, const uint32_t * b){
+    int k;
+    uint32_t c = 0;
+
+    for(k = 0; k < N_SZ*2; ++ k) {
+        uint32_t n = a[k] + b[k] + c;
+        c = (c & (n == a[k])) | (n < a[k]);
+        a[k] = n;
+    }
+    return c;
+}
+
+uint32_t dsub(uint32_t *a, const uint32_t * b){
+    int k;
+    uint32_t c = 0;
+
+    for(k = 0; k < N_SZ*2; ++ k) {
+        uint32_t n = a[k] - b[k] - c;
+        c = (c & (n == a[k])) | (n > a[k]);
+        a[k] = n;
+    }
+    return c;
+}
+
+void loop_reduce(uint32_t *a, int c, const uint32_t *b){
+    int i;
+    uint32_t is_gte;
+    do {
+        is_gte = 1;
+        if(c == 0){
+            for(i = N_SZ-1; i >= 0; -- i){
+                if (a[i] != b[i]){
+                    is_gte = (a[i] > b[i]);
+                    break;
+                }
+            }
+        }
+        if(is_gte){
+            c -= sub(a, b);
+        }
+        assert(c >= 0);
+    } while(is_gte);
 }
 
 /*
@@ -152,6 +196,19 @@ void init(const uint32_t *M, mm_system *mm){
         assert (cu == 0);
         assert (cv == 0);
     }
+        uint32_t hR[N_SZ*2] = {0};
+        hR[N_SZ-1] = (1 << 31);
+        uint32_t Ru[N_SZ*2] = {0};
+        uint32_t Mv[N_SZ*2] = {0};
+        full_mul(hR, u, Ru);
+        full_mul(M, v, Mv);
+        zero(hR);
+        dadd(hR, Ru);
+        dsub(hR, Mv);
+        dadd(hR, Ru);
+        assert(hR[0] == 1);
+        assert(hR[N_SZ-1] == 0);
+        assert(hR[N_SZ*2-1] == 0);
     /*
         upon exiting, r=0, and thus, 2^r = 1 = gcd(R,M) (if called properly)
     */
@@ -160,27 +217,21 @@ void init(const uint32_t *M, mm_system *mm){
     zero(mm->r_inv);
 
     move(M, mm->modulus);
-    move(u, mm->m_inv);
-    move(v, mm->r_inv);
+    sub(mm->r_inv, u);
+    sub(mm->m_inv, v);
 }
 
 /*
-    obtain the residue of (a * 2^2048) mod b = (a||0)/b, where 
-    (1) b > 2^2047 (i.e., the highmost bit of b is set)
-    (2) a < b (in practice, the highmost short of each symbol is set to 0x0001,
-        so 2^2032 <= a < 2^2033, and the "working" symbol size is 62 bytes)
-
+    obtain the residue of aR mod b, where 
+    (1) b > N_SZ/2 (i.e., the highmost bit of b is set)
+    (2) a < b (in practice, the highmost short of each symbol is set to 0x0001)
     by the following method:
-    (1) estimate q = floor(a/b) using the top bytes of a,b - a sort of 0-pass
-        Newton-Raphson method
-        (i) if (high part of aa) == bb, a/b is in 2^32 + [-1 .. 0)
-        (ii)otherwise, (a/b) = floor(aa/B) + [0 .. 1), as
-            - aa within (a - 2^-64 .. a]
-            - B  within (b - 2^-32 .. b]
-            - aa/B in (a - 2^-64 / b .. a/(b - 2^-32)]
-                   in (a/b - (2^64 / 2^-64) .. a/b + (2^64 / 2^-64)]
-                   in a/b - (1 .. 1]   
-    (2) calculate a - (estimate-q)*b
+    (1) estimate q = floor(a/b) using the top bytes of a,b
+        (i) if (high part of aa) == bb, a/b is in 2^32 + [-1 .. 0).
+        (ii)otherwise, (a/b) ~= floor(aa/B). 
+    (2) shift a <<= 2^32
+    (3) calculate a - (min(approxQ-3, 0))*b. now, a' = r + {0, b, 2b}
+    (4) apply a conditional final addition / subtraction of b
 */
 void mm_conv(const uint32_t *a, const uint32_t *b, uint32_t *R){
 
@@ -191,18 +242,22 @@ void mm_conv(const uint32_t *a, const uint32_t *b, uint32_t *R){
     bb = b[N_SZ-1];
 
     assert(bb & (1 << 31));
+    
+    /*
+        this loop has the invariants
+        (1) A = a * 2^(32k) mod N
+    */
+    
     for(k = 0; k < N_SZ; ++ k){
         int i;
-        uint32_t Q, uf, ha;
+        uint32_t Q, ha;
         uint64_t aa, c;
-         
+ 
         /*
             take the upper two words of a, and call them aa, a truncation
             of a to between 33 and 64 bits of precision.
         */ 
         ha = A[N_SZ-1];
-
-        assert(ha < bb);
 
         if(ha == bb){
             Q = 0xFFFFFFFF;
@@ -210,61 +265,72 @@ void mm_conv(const uint32_t *a, const uint32_t *b, uint32_t *R){
         else {
             aa = ((uint64_t)ha << 32) + A[N_SZ-2];
             Q = (uint32_t) (aa / bb);
+            if(Q > 2){
+                Q -= 3;
+            }
+            else{
+                Q = 0;
+            }
         }
-        /*
-            shift over a by one word (the highmost word is saved in ha).
-        */
+        printf("I think Q= %lu / %u = %u (%#10.8x)\n", aa, bb, Q, Q);
+
         memmove(A+1, A, (N_SZ)*sizeof *A);
         A[0] = 0;
         c = 0;
-        uf = 0;
 
-        /*
-            if Q != 0, subtract Q*b from a.
-        */
+        pf8("A", A);
+        pf4("b", b);
         if(Q != 0){
-            for(i = 0; i < N_SZ; ++ i){
+            for(i = 0; i <= N_SZ; ++ i){
                 uint64_t p = ((uint64_t)Q * (uint64_t)b[i]) + c;
                 uint32_t lp = (uint32_t) p;
+                c = (uint32_t)(p >> 32);
                 A[i] -= lp;
-                c = (uint32_t)(p >> 32); 
                 c += (uint64_t)(A[i] > lp);
-                uf = (A[i] > lp) ? 1 : (A[i] == lp);
             }
         }
-        
+        pf8("A'", A);
+
+        int d = ha - c;
+        printf("%lu %u\n", c, ha);
+        assert(d >= 0);
         /*
-            either add or subtract extra copies of m.
-        */ 
-        while(uf || (c < (uint64_t)ha)){
-            c += sub(A, b);
-            uf = 0;
-        }
-        while (c > (uint64_t)ha){
-            c -= add(A, b);
-        }
-        assert((c - ha) == 0);
+            now we only need to call loop_reduce a small number of times.
+        */
+        loop_reduce(A, d, b);
     }
-    zero(R+N_SZ);
+
+    memset(R, 0, N_SZ*2*sizeof *R);
     move(A, R);
 }
 
+/*
+    scale down a Montgomery number from a product t \in [0 .. NR]
+*/
 void mm_redc(const uint32_t *A, const mm_system mm, uint32_t *r){
-   
-   int i, j;
-   uint32_t c, ha;
-   uint32_t b[N_SZ];
+    uint32_t B[N_SZ*2] = {0};
+    uint32_t Z[N_SZ*2] = {0};
 
-   for(i = 0; i < N_SZ; ++ i){
-        c = 0;
-        zero(b);
-        b[0] = A[i];
-        half_mul(b, mm.m_inv);
-       /* 
-        for(j = 0; j < N_SZ; j++){
-            uint32_t x = A[i+j];
-        }*/
-   }
+    /*
+        B = ((A mod R)m') mod R
+    */
+    move(A, B);
+    half_mul(B, mm.m_inv);
+    pf4("iM", mm.m_inv);
+    pf4("B", B);
+    pf4("*M", mm.modulus);
+    /*
+        t = (A + BN) mod R
+    */
+    full_mul(B, mm.modulus, Z);
+    pf8("Z", Z);
+    dadd(Z, A);
+    pf8("+A", A);
+    pf8("Z'", Z);
+    move(Z+(N_SZ*sizeof *Z), Z);
+
+    loop_reduce(Z, 0, mm.modulus);
+    move(Z, r);
 }
 
 /*
@@ -317,18 +383,13 @@ void mm_mul(uint32_t *A, const uint32_t *B, const mm_system mm){
     }
 
     if(c == 0){
-        cl = 0;
-        for(i = 0; i < N_SZ; ++ i){
-            uint32_t k = mm.modulus[i] + cl;
-            Z[i] -= k;
-            cl = (cl && (Z[i] == k)) | (Z[i] > k);
-        }
+        cl = sub(Z, mm.modulus);
     }
     assert(cl == 0);
     assert(Z[N_SZ] == 0);
 
-    zero(A+N_SZ);
-    move(Z+N_SZ, A);
+    memset(A, 0, N_SZ*2*sizeof *A);
+    move(Z+(N_SZ*sizeof *Z), A);
 }
 
 int main(void){
@@ -343,10 +404,24 @@ int main(void){
         2^256 - a:
         { 189, 357, 435, 587, 617, 923, 1053, 1299, 1539, 1883 }
     */
-    mod[3] = -1;
-    mod[2] = -1;
-    mod[1] = -1;
-    mod[0] = -1193;
+    
+    mod[15]= 0xcf6d59c9;
+    mod[14]= 0xb1124b9c;
+    mod[13]= 0x980b3bdb;
+    mod[12]= 0xc63c7746;
+    mod[11]= 0x84467c12;
+    mod[10]= 0x1e385ab8;
+    mod[9] = 0xf81f2395;
+    mod[8] = 0x525db17a;
+		mod[7] = 0xde78053c;
+		mod[6] = 0x410e682b;
+		mod[5] = 0xa7e50e34;
+		mod[4] = 0x1664298f; 
+		mod[3] = 0xbbd94152;
+		mod[2] = 0x07ef9494;
+		mod[1] = 0x783f4d7e;
+		mod[0] = 0xfe955f61;
+    
     init(mod, &Mont);
     printf("inverted:\n");
     pf4("mod", Mont.modulus);
@@ -354,16 +429,39 @@ int main(void){
     pf4("-(ir)", Mont.r_inv);
     
     uint32_t val[N_SZ] = {0};
+    val[0] = 1;
     uint32_t val2[N_SZ*2] = {0};
     
-    uint64_t i;
-    for(i = (1L<<63)+1; i != 0; i+= (1<<30)+21){
-        //printf("converting %d\n", i);
+    mm_conv(val, Mont.modulus, val2);
+
+    pf8("R%N", val2);
+    // 1 -> 1R mod N = R mod N
+
+    full_mul(val2, Mont.r_inv, val2);
+    pf8("R(iR)", val2);
+    /*for(i = 0; i < 16; i++){
+        printf("converting %lu\n", i);
         zero(val);
-        val[0] = (uint32_t) i;
+        val[0] = (uint32_t) i + (1<<31);
         val[1] = (uint32_t) (i >> 32);
-        //pf2("v", val);
+        
+        pf4("v", val);
+        
         mm_conv(val, Mont.modulus, val2);
-    }
-    pf4("V", val2);
+        pf8("V", val2);
+
+        zero(val);
+
+        mm_redc(val2, Mont, val);
+        pf4("v'", val);
+    }*/
+    mm_conv(mod, Mont.modulus, val2);
+    pf8("M", val2);
+    mm_conv(Mont.m_inv, Mont.modulus, val2);
+    pf8("iM", val2);
+    mm_conv(Mont.r_inv, Mont.modulus, val2);
+    pf8("-iR", val2);
+    zero(val2);
+    full_mul(Mont.m_inv, Mont.modulus, val2);
+    pf4("M*iM", val2);
 }
