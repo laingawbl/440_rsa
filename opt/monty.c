@@ -28,14 +28,6 @@ uint32_t gte(const uint32_t a[L], const uint32_t b[L]){
 	return 1;
 }
 
-uint32_t iszero(const uint32_t *a) {
-    int i;
-    for(i = L-1; i >= 0; i--){
-        if(a[i] != 0) return 0;
-    }
-    return 1;
-}
-
 void mult(const uint32_t a[L], const uint32_t b[L], uint32_t T[LL]){
 	uint32_t Prod[LL] = {0};
 	uint32_t c;
@@ -43,10 +35,34 @@ void mult(const uint32_t a[L], const uint32_t b[L], uint32_t T[LL]){
 	
 	for(i = 0; i < L; i++){
 		c = 0;
-		for(j = 0; j < L; j++){
-			uint64_t n = (uint64_t)Prod[i+j] + (uint64_t)c + ((uint64_t)a[i] * (uint64_t)b[j]);
-			c = (uint32_t)(n >> wb);
+		for(j = 0; j < L; j+=8){
+		    uint64_t la = (uint64_t) a[i];
+		    uint64_t n;
+
+			n = (uint64_t)Prod[i+j] + (uint64_t)c + (la * (uint64_t)b[j]);
 			Prod[i+j] = (uint32_t) n;
+
+            n = (uint64_t)Prod[i+j+1] + (n >> wb) + (la * (uint64_t)b[j+1]);
+            Prod[i+j+1] = (uint32_t) n;
+
+            n = (uint64_t)Prod[i+j+2] + (n >> wb) + (la * (uint64_t)b[j+2]);
+            Prod[i+j+2] = (uint32_t) n;
+
+            n = (uint64_t)Prod[i+j+3] + (n >> wb) + (la * (uint64_t)b[j+3]);
+            Prod[i+j+3] = (uint32_t) n;
+
+            n = (uint64_t)Prod[i+j+4] + (n >> wb) + (la * (uint64_t)b[j+4]);
+            Prod[i+j+4] = (uint32_t) n;
+
+            n = (uint64_t)Prod[i+j+5] + (n >> wb) + (la * (uint64_t)b[j+5]);
+            Prod[i+j+5] = (uint32_t) n;
+
+            n = (uint64_t)Prod[i+j+6] + (n >> wb) + (la * (uint64_t)b[j+6]);
+            Prod[i+j+6] = (uint32_t) n;
+
+            n = (uint64_t)Prod[i+j+7] + (n >> wb) + (la * (uint64_t)b[j+7]);
+            Prod[i+j+7] = (uint32_t) n;
+            c = (uint32_t)(n >> wb);
 		}
 		Prod[i+L] = c;
 	}
@@ -92,20 +108,6 @@ uint32_t sub(const uint32_t A[L], const uint32_t B[L], uint32_t T[L]){
 	}
 	mv(Sum, T);
 	return c;
-}
-
-uint32_t subwide(const uint32_t A[LL], const uint32_t B[LL], uint32_t T[LL]){
-    uint32_t Sum[LL] = {0};
-    uint32_t c = 0;
-    int i;
-
-    for(i = 0; i < LL; i++){
-        uint32_t n = A[i] - B[i] - c;
-        c = (c & (n == A[i])) | (n > A[i]);
-        Sum[i] = (uint32_t) n;
-    }
-    mvwide(Sum, T);
-    return c;
 }
 
 void mm_init(const uint32_t n[L], Mont *Mo){
@@ -207,7 +209,7 @@ void mm_redc(const uint32_t T[LL], const Mont *Mo, uint32_t t[L]) {
 
     mult(Acc, Mo->N, Acc);      //Acc = wide   mN
     c = addwide(T, Acc, Acc);   //Acc = wide   T + mN
-    mv(Acc+L, t);               //narrow t := (T + mN) / Rgit 
+    mv(Acc+L, t);               //narrow t := (T + mN) / R
 
     if (c || gte(t, Mo->N)) {
         sub(t, Mo->N, t);
@@ -223,16 +225,10 @@ void mm_redc(const uint32_t T[LL], const Mont *Mo, uint32_t t[L]) {
  * You MUST have t < Mo->N.
  */
 void mm_conv(const uint32_t t[L], const Mont *Mo, uint32_t T[L]){
-    mv(Mo->CF, T);
-    mm_mult(T, t, Mo);
+    mv(t, T);
+    mm_mult(T, Mo->CF, Mo);
 }
 
-/*
-	calls:
-	- mult() 3 times
-	- add()/sub() 2 times
-	- memcpy() 4 times
-*/
 void mm_mult(uint32_t A[L], const uint32_t B[L], const Mont *Mo) {
     uint32_t tmp[LL] = {0};
 	mult(A, B, tmp);
@@ -247,27 +243,67 @@ void mm_mult(uint32_t A[L], const uint32_t B[L], const Mont *Mo) {
 	      { (X^2)^(n/2),        if n is even
 
     Remember! b should NOT be a Montgomery-form number.
-	
-	TODO: as A is mutable, can I replace T1 with A?
 */
 void mm_exp(uint32_t A[L], const uint32_t b[L], int len_b, const Mont *Mo){
 	uint32_t T1[L] = {0};
-	uint32_t T2[L] = {0};
+	uint32_t T2[L];
 	int i;
-	
-	mv(A, T1);
-	mv(A, T2);
-	mm_mult(T2, T2, Mo);
 
-	for(i = len_b - 1; i >= 0; i--){
-        if(sel(b, i)){          // if B_i is odd, t1 <- (t1 t2), t2 <- (t2)^2
+	T1[0] = 1;
+	mm_mult(T1, Mo->CF, Mo);
+    mv(A, T2);
+
+    for(i = 0; i < (len_b/wb); i++){
+        uint32_t e = b[i];
+
+        // for each bit in b, if b_i is odd, t1 <- (t1 t2), t2 <- (t2)^2
+
+        if(e & 1)
             mm_mult(T1, T2, Mo);
-			mm_mult(T2, T2, Mo);
+        mm_mult(T2, T2, Mo);
+
+        if(e >>  1 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >>  2 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >>  3 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >>  4 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >>  5 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >>  6 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >>  7 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+
+        if(e >>  8 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >>  9 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 10 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 11 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 12 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 13 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 14 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 15 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+
+        if(e >> 16 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 17 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 18 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 19 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 20 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 21 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 22 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 23 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+
+        if(e >> 24 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 25 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 26 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 27 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 28 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 29 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 30 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+        if(e >> 31 & 1) mm_mult(T1, T2, Mo); mm_mult(T2, T2, Mo);
+    }
+
+    uint32_t e = b[i];
+	for(i = 0; i <= len_b%wb; i++){
+        if(e >> i & 1){
+            mm_mult(T1, T2, Mo);
 		}
-        else {                  // else, t2 <- (t1 t2), t1 <- (t1)^2
-            mm_mult(T2, T1, Mo);
-			mm_mult(T1, T1, Mo);
-		}
+		mm_mult(T2, T2, Mo);
 	}
 	mv(T1, A);
 }

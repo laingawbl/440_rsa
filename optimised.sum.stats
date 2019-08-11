@@ -3,15 +3,17 @@ Flat profile:
 Each sample counts as 0.01 seconds.
   %   cumulative   self              self     total           
  time   seconds   seconds    calls  ms/call  ms/call  name    
- 64.99     78.34    78.34  1555948     0.05     0.05  mm_redc
- 31.51    116.32    37.98      380    99.95   306.00  mm_exp
-  1.78    118.47     2.15                             memset
-  1.58    120.37     1.90                             memcpy
-  0.14    120.54     0.17                             __gnu_mcount_nc
-  0.01    120.55     0.01      380     0.03     0.08  mm_mult
-  0.00    120.55     0.00      380     0.00     0.00  mm_conv
-  0.00    120.55     0.00       10     0.00     0.00  main
-  0.00    120.55     0.00       10     0.00     0.00  mm_init
+ 55.58     57.72    57.72  1168196     0.05     0.05  mm_redc
+ 41.48    100.80    43.08      380   113.37   265.16  mm_exp
+  1.43    102.28     1.48                             memcpy
+  1.38    103.71     1.43                             memset
+  0.12    103.83     0.12                             __gnu_mcount_nc
+  0.01    103.84     0.01                             fwrite
+  0.01    103.85     0.01                             rsa_proc
+  0.00    103.85     0.00      380     0.00     0.00  mm_conv
+  0.00    103.85     0.00      380     0.00     0.05  mm_mult
+  0.00    103.85     0.00       10     0.00     0.00  main
+  0.00    103.85     0.00       10     0.00     0.00  mm_init
 
  %         the percentage of the total running time of the
 time       program used by this function.
@@ -49,47 +51,50 @@ notice and this notice are preserved.
 		     Call graph (explanation follows)
 
 
-granularity: each sample hit covers 4 byte(s) for 0.01% of 120.55 seconds
+granularity: each sample hit covers 4 byte(s) for 0.01% of 103.85 seconds
 
 index % time    self  children    called     name
                                                  <spontaneous>
-[1]     96.5    0.00  116.33                 rsa_proc [1]
-               37.98   78.30     380/380         mm_exp [2]
-                0.01    0.02     380/380         mm_mult [7]
-                0.02    0.00     380/1555948     mm_redc [3]
-                0.00    0.00     380/380         mm_conv [8]
-                0.00    0.00      10/10          mm_init [10]
+[1]     97.1    0.01  100.80                 rsa_proc [1]
+               43.08   57.68     380/380         mm_exp [2]
+                0.02    0.00     380/1168196     mm_redc [3]
+                0.00    0.02     380/380         mm_mult [7]
+                0.00    0.00     380/380         mm_conv [9]
+                0.00    0.00      10/10          mm_init [11]
 -----------------------------------------------
-               37.98   78.30     380/380         rsa_proc [1]
-[2]     96.5   37.98   78.30     380         mm_exp [2]
-               78.30    0.00 1555188/1555948     mm_redc [3]
+               43.08   57.68     380/380         rsa_proc [1]
+[2]     97.0   43.08   57.68     380         mm_exp [2]
+               57.68    0.00 1167436/1168196     mm_redc [3]
 -----------------------------------------------
-                0.02    0.00     380/1555948     rsa_proc [1]
-                0.02    0.00     380/1555948     mm_mult [7]
-               78.30    0.00 1555188/1555948     mm_exp [2]
-[3]     65.0   78.34    0.00 1555948         mm_redc [3]
------------------------------------------------
-                                                 <spontaneous>
-[4]      1.8    2.15    0.00                 memset [4]
+                0.02    0.00     380/1168196     rsa_proc [1]
+                0.02    0.00     380/1168196     mm_mult [7]
+               57.68    0.00 1167436/1168196     mm_exp [2]
+[3]     55.6   57.72    0.00 1168196         mm_redc [3]
 -----------------------------------------------
                                                  <spontaneous>
-[5]      1.6    1.90    0.00                 memcpy [5]
+[4]      1.4    1.48    0.00                 memcpy [4]
 -----------------------------------------------
                                                  <spontaneous>
-[6]      0.1    0.17    0.00                 __gnu_mcount_nc [6]
+[5]      1.4    1.43    0.00                 memset [5]
 -----------------------------------------------
-                0.01    0.02     380/380         rsa_proc [1]
-[7]      0.0    0.01    0.02     380         mm_mult [7]
-                0.02    0.00     380/1555948     mm_redc [3]
+                                                 <spontaneous>
+[6]      0.1    0.12    0.00                 __gnu_mcount_nc [6]
+-----------------------------------------------
+                0.00    0.02     380/380         rsa_proc [1]
+[7]      0.0    0.00    0.02     380         mm_mult [7]
+                0.02    0.00     380/1168196     mm_redc [3]
+-----------------------------------------------
+                                                 <spontaneous>
+[8]      0.0    0.01    0.00                 fwrite [8]
 -----------------------------------------------
                 0.00    0.00     380/380         rsa_proc [1]
-[8]      0.0    0.00    0.00     380         mm_conv [8]
+[9]      0.0    0.00    0.00     380         mm_conv [9]
 -----------------------------------------------
-                0.00    0.00      10/10          __libc_start_main [678]
-[9]      0.0    0.00    0.00      10         main [9]
+                0.00    0.00      10/10          __libc_start_main [676]
+[10]     0.0    0.00    0.00      10         main [10]
 -----------------------------------------------
                 0.00    0.00      10/10          rsa_proc [1]
-[10]     0.0    0.00    0.00      10         mm_init [10]
+[11]     0.0    0.00    0.00      10         mm_init [11]
 -----------------------------------------------
 
  This table describes the call tree of the program, and was sorted by
@@ -182,6 +187,7 @@ notice and this notice are preserved.
 
 Index by function name
 
-   [6] __gnu_mcount_nc         [4] memset                 [10] mm_init
-   [9] main                    [8] mm_conv                 [7] mm_mult
-   [5] memcpy                  [2] mm_exp                  [3] mm_redc
+   [6] __gnu_mcount_nc         [5] memset                  [7] mm_mult
+   [8] fwrite                  [9] mm_conv                 [3] mm_redc
+  [10] main                    [2] mm_exp                  [1] rsa_proc
+   [4] memcpy                 [11] mm_init
