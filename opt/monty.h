@@ -16,9 +16,7 @@
 #define w sizeof(uint32_t)
 #define wb (w * 8)
 #define L (Lb / wb)
-#define LL 2*L
-
-#define sel(T,n) ((T[n/wb] >> (n%wb)) & 1)
+#define LL (2*L)
 
 typedef struct _mm_s {
     uint32_t N[L];     // modulus
@@ -38,8 +36,6 @@ static inline void mv(const uint32_t *u, uint32_t *t){
 /* Exported symbols */
 
 void declaim(const char *msg, const uint32_t *a, int len);
-
-uint32_t iszero(const uint32_t a[L]);
 
 void mm_init(const uint32_t *M, Mont *mm);
 
