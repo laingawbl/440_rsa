@@ -13,7 +13,7 @@ void declaim(const char *msg, const uint32_t *a, int len){
     int i;
     for(i = len-1; i >= 0; --i){
         if((i+1)%8 == 0) printf("\n 2^%4d  ", (i+1)*32);
-        printf("%#10.8x ", a[i]);
+        printf("%8.8x ", a[i]);
     }
     printf("\n");
 }
@@ -50,7 +50,6 @@ void mult(const uint32_t a[L], const uint32_t b[L], uint32_t T[LL]){
 		}
 		Prod[i+L] = c;
 	}
-
 	mvwide(Prod, T);
 }
 
@@ -151,18 +150,19 @@ void mm_init(const uint32_t n[L], Mont *Mo){
 
     // SECOND PART: set up CF.
 
-    uint32_t R[L] = {0};
+    uint32_t R[L+1] = {0};
     R[0] = 1;
     for(r = 0; r < 2*Lb; r++){
         int k;
 
-        for(k = L-1; k > 0; k--){ // shift R left one place
+        for(k = L; k > 0; k--){ // shift R left one place
             R[k] = (R[k] << 1) | (R[k-1] >> 31);
         }
         R[0] <<= 1;
 
-        if(gte(R, n)){  // conditionally subtract the modulus
+        if(R[L] || gte(R, n)){  // conditionally subtract the modulus
             sub(R, n, R);
+            R[L] = 0;
         }
     }  // upon exiting, R = (1 << 2*Lb) (mod N) = R^2 (mod N)
 
@@ -195,10 +195,10 @@ void mm_redc(const uint32_t T[LL], const Mont *Mo, uint32_t t[L]) {
     mult(Acc, Mo->iN, Acc);     //Acc = wide  (T mod R) N'
     modR(Acc);                  //Acc = narrow m := (TN') mod R
     mult(Acc, Mo->N, Acc);      //Acc = wide   mN
-    addwide(T, Acc, Acc);       //Acc = wide   T + mN
+    c = addwide(T, Acc, Acc);   //Acc = wide   T + mN
     divR(Acc);                  //Acc = narrow t := (T + mN) / R
 
-    if (gte(Acc, Mo->N)) {
+    if (c || gte(Acc, Mo->N)) {
         sub(Acc, Mo->N, Acc);
     }
     assert(gte(Mo->N, Acc));
@@ -228,7 +228,11 @@ void mm_conv(const uint32_t t[L], const Mont *Mo, uint32_t T[L]){
 void mm_mult(uint32_t A[L], const uint32_t B[L], const Mont *Mo) {
     uint32_t tmp[LL] = {0};
 	mult(A, B, tmp);
+	//declaim("\nA", A, L);
+	//declaim("B", B, L);
+	//declaim("=TR", tmp, LL);
     mm_redc(tmp, Mo, A);
+    //declaim("\n=T", A, L);
     assert(gte(Mo->N, A));
 }
 
@@ -263,18 +267,16 @@ void mm_exp(uint32_t A[L], const uint32_t b[L], int len_b, const Mont *Mo){
 	mv(A, T1);
 	mv(A, T2);
 	mm_mult(T2, T2, Mo);
-	
+
 	for(i = len_b - 1; i >= 0; i--){
-		if(sel(b, i)){          // if B_i is odd, t1 <- (t1 t2), t2 <- (t2)^2
-			mm_mult(T1, T2, Mo);
+        if(sel(b, i)){          // if B_i is odd, t1 <- (t1 t2), t2 <- (t2)^2
+            mm_mult(T1, T2, Mo);
 			mm_mult(T2, T2, Mo);
 		}
-		else {                  // else, t2 <- (t1 t2), t1 <- (t1)^2
-			mm_mult(T2, T1, Mo);
+        else {                  // else, t2 <- (t1 t2), t1 <- (t1)^2
+            mm_mult(T2, T1, Mo);
 			mm_mult(T1, T1, Mo);
 		}
-		declaim("T1", T1, L);
-		declaim("T2", T2, L);
 	}
 	mv(T1, A);
 }
