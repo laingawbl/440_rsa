@@ -3,6 +3,29 @@
 #include<stdlib.h>
 #include<time.h>
 
+void mvwide(const uint32_t *U, uint32_t *T){
+    if(U != T) memcpy(T, U, 2*L8);
+}
+
+void mv(const uint32_t *u, uint32_t *t){
+    if(u != t) memcpy(t, u, L8);
+}
+
+/*
+	take a wide number T = [hi][lo] -> [0][hi]
+*/
+void divR(uint32_t *T){
+    memcpy(T, T+L, L8);
+    memset(T+L, 0, L8);
+}
+
+/*
+	take a wide number T = [hi][lo] -> [0][lo]
+*/
+void modR(uint32_t *T){
+    memset(T+L, 0, L8);
+}
+
 void list(const uint32_t *a, int len){
     declaim("num", a, len);
 

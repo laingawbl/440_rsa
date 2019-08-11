@@ -1,5 +1,5 @@
 CC=arm-linux-gnueabi-gcc
-CFLAGS=-I. -O3 -static
+CFLAGS=-I. -O3 -static -pg
 DEPS=monty.h
 
 %.o: %.c $(DEPS)
