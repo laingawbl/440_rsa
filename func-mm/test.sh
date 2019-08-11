@@ -18,7 +18,7 @@ tr -d ":[:blank:]\n" > monty_test_key
 
 echo "executing mm_rsa with that key..."
 echo "encrypting..."
-./cmake-build-debug/func_mm -k monty_test_key -i corpus -o enc 
+qemu-arm ./func_mm -k monty_test_key -i corpus -o enc 
 echo "done."
 echo "decrypting..."
-./cmake-build-debug/func_mm -k monty_test_key -i enc -d -p
+qemu-arm ./func_mm -k monty_test_key -i enc -d -p
