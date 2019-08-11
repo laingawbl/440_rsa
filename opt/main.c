@@ -13,11 +13,11 @@ typedef struct _rsak_s {
     uint32_t esize;
 } rsa_key;
 
-void os2ip(const char *in, uint32_t out[L]){
+static inline void os2ip(const char *in, uint32_t out[L]){
     memcpy(out, in, L8);
 }
 
-void i2osp(const uint32_t in[L], char *out){
+static inline void i2osp(const uint32_t in[L], char *out){
     memcpy(out, in, L8);
 }
 

@@ -27,9 +27,24 @@ typedef struct _mm_s {
     uint32_t CF[L];    // conversion factor (R^2 (mod N)), s.t. mm_mult(a . cF) = aR (mod N) for any a < N
 } Mont;
 
-/* Exported symbols */
+static inline void mvwide(const uint32_t *U, uint32_t *T){
+    if(U != T) memcpy(T, U, 2*L8);
+}
 
-void mv(const uint32_t *u, uint32_t *t);
+static inline void mv(const uint32_t *u, uint32_t *t){
+    if(u != t) memcpy(t, u, L8);
+}
+
+static inline void divR(uint32_t *T){
+    memcpy(T, T+L, L8);
+    memset(T+L, 0, L8);
+}
+
+static inline void modR(uint32_t *T){
+    memset(T+L, 0, L8);
+}
+
+/* Exported symbols */
 
 void declaim(const char *msg, const uint32_t *a, int len);
 

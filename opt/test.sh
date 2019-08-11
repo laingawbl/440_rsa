@@ -24,5 +24,5 @@ echo "decrypting..."
 time -v qemu-arm ./opt_mm -k monty_test_key -i enc -o result -d
 echo "done."
 echo "diff between original text and result follows..."
-diff corpus result
+diff -war corpus result
 

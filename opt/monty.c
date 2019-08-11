@@ -3,29 +3,6 @@
 #include<stdlib.h>
 #include<time.h>
 
-void mvwide(const uint32_t *U, uint32_t *T){
-    if(U != T) memcpy(T, U, 2*L8);
-}
-
-void mv(const uint32_t *u, uint32_t *t){
-    if(u != t) memcpy(t, u, L8);
-}
-
-/*
-	take a wide number T = [hi][lo] -> [0][hi]
-*/
-void divR(uint32_t *T){
-    memcpy(T, T+L, L8);
-    memset(T+L, 0, L8);
-}
-
-/*
-	take a wide number T = [hi][lo] -> [0][lo]
-*/
-void modR(uint32_t *T){
-    memset(T+L, 0, L8);
-}
-
 void list(const uint32_t *a, int len){
     declaim("num", a, len);
 
@@ -212,21 +189,29 @@ void mm_init(const uint32_t n[L], Mont *Mo){
 */
 void mm_redc(const uint32_t T[LL], const Mont *Mo, uint32_t t[L]) {
     uint32_t Acc[LL] = {0};
-    uint32_t c;
+    uint32_t T_loc[L];
+    uint32_t N_loc[L];
+    uint32_t i, j, c;
 
-    mv(T, Acc);                 //Acc = narrow T mod R
-    mult(Acc, Mo->iN, Acc);     //Acc = wide  (T mod R) N'
-    modR(Acc);                  //Acc = narrow m := (TN') mod R
+    mv(T, T_loc);
+    mv(Mo->iN, N_loc);
+
+    for(i = 0; i < L; i++){       //Acc = narrow (T half-mul N') = (TN') mod R
+        c = 0;
+        for(j = 0; j < (L-i); j++){
+            uint64_t n = (uint64_t)Acc[i+j] + (uint64_t)c + ((uint64_t)N_loc[i] * (uint64_t)T_loc[j]);
+            c = (uint32_t)(n >> wb);
+            Acc[i+j] = (uint32_t) n;
+        }
+    }
+
     mult(Acc, Mo->N, Acc);      //Acc = wide   mN
     c = addwide(T, Acc, Acc);   //Acc = wide   T + mN
-    divR(Acc);                  //Acc = narrow t := (T + mN) / R
+    mv(Acc, t);                 //narrow t := (T + mN) / R
 
-    if (c || gte(Acc, Mo->N)) {
-        sub(Acc, Mo->N, Acc);
+    if (c || gte(t, Mo->N)) {
+        sub(t, Mo->N, t);
     }
-    assert(gte(Mo->N, Acc));
-
-    mv(Acc, t);
 }
 
 /*
@@ -251,36 +236,19 @@ void mm_conv(const uint32_t t[L], const Mont *Mo, uint32_t T[L]){
 void mm_mult(uint32_t A[L], const uint32_t B[L], const Mont *Mo) {
     uint32_t tmp[LL] = {0};
 	mult(A, B, tmp);
-	//declaim("\nA", A, L);
-	//declaim("B", B, L);
-	//declaim("=TR", tmp, LL);
     mm_redc(tmp, Mo, A);
-    //declaim("\n=T", A, L);
-    assert(gte(Mo->N, A));
 }
 
 /*
-	Constant-time Montgomery ladder using Montgomery multiplication (a sort of 
-	Montryoshka). like regular square-and-multiplying, it works on the recurrence
+	Square-and-multiply exponentiation using Montgomery multiplication. it
+    works on the recurrence
 	
 	x^n = { x * (x^2)^(n-1)/2,  if n is odd
 	      { (X^2)^(n/2),        if n is even
-	      
-	Each bit of b after the highest (len_b - 1) produces 2 calls to mm_mult,
-	whether that bit is even or odd. Both of those calls involve a single 
-	auxiliary number (Prod, then Acc) which is only live within the scope of the
-	function.
-	
-	So, a 2048-bit exponentiation should have:
-	- 12285 calls to mult()
-	- 8190  calls to add() / sub()
-	- 16383 calls to memcpy() (3 outside the loop)
-	- auxiliary space 6*L = 3072 bytes (T1, T2, and Prod/Acc)
 
     Remember! b should NOT be a Montgomery-form number.
 	
 	TODO: as A is mutable, can I replace T1 with A?
-    TODO: update call counts
 */
 void mm_exp(uint32_t A[L], const uint32_t b[L], int len_b, const Mont *Mo){
 	uint32_t T1[L] = {0};
