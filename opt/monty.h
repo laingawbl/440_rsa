@@ -35,15 +35,6 @@ static inline void mv(const uint32_t *u, uint32_t *t){
     if(u != t) memcpy(t, u, L8);
 }
 
-static inline void divR(uint32_t *T){
-    memcpy(T, T+L, L8);
-    memset(T+L, 0, L8);
-}
-
-static inline void modR(uint32_t *T){
-    memset(T+L, 0, L8);
-}
-
 /* Exported symbols */
 
 void declaim(const char *msg, const uint32_t *a, int len);

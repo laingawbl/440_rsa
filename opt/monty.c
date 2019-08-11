@@ -82,20 +82,6 @@ uint32_t add(const uint32_t A[L], const uint32_t B[L], uint32_t T[L]){
 	return c;
 }
 
-uint32_t addwide(const uint32_t A[LL], const uint32_t B[LL], uint32_t T[LL]){
-    uint32_t Sum[LL] = {0};
-    uint32_t c = 0;
-    int i;
-
-    for(i = 0; i < LL; i++){
-        uint64_t n = A[i] + B[i] + c;
-        c = (c & (n == A[i])) | (n < A[i]);
-        Sum[i] = (uint32_t)n;
-    }
-    mvwide(Sum, T);
-    return c;
-}
-
 uint32_t sub(const uint32_t A[L], const uint32_t B[L], uint32_t T[L]){
 	uint32_t Sum[L] = {0};
 	uint32_t c = 0;
@@ -191,28 +177,40 @@ void mm_init(const uint32_t n[L], Mont *Mo){
 */
 void mm_redc(const uint32_t T[LL], const Mont *Mo, uint32_t t[L]) {
     uint32_t Acc[LL] = {0};
-    uint32_t T_loc[L];
-    uint32_t N_loc[L];
+    uint32_t Tl[L];
+    uint32_t Nl[L];
+    uint32_t Nnl[L];
     uint32_t i, j, c;
 
-    mv(T, T_loc);
-    mv(Mo->iN, N_loc);
+    mv(T, Tl);
+    mv(Mo->N, Nl);
+    mv(Mo->iN, Nnl);
 
     for(i = 0; i < L; i++){       //Acc = narrow (T half-mul N') = (TN') mod R
         c = 0;
         for(j = 0; j < (L-i); j++){
-            uint64_t n = (uint64_t)Acc[i+j] + (uint64_t)c + ((uint64_t)N_loc[i] * (uint64_t)T_loc[j]);
+            uint64_t n = (uint64_t)Acc[i+j] + (uint64_t)c + ((uint64_t)Nnl[i] * (uint64_t)Tl[j]);
             c = (uint32_t)(n >> wb);
             Acc[i+j] = (uint32_t) n;
         }
     }
 
     mult(Acc, Mo->N, Acc);      //Acc = wide   mN
-    c = addwide(T, Acc, Acc);   //Acc = wide   T + mN
-    mv(Acc+L, t);               //narrow t := (T + mN) / R
 
-    if (c || gte(t, Mo->N)) {
-        sub(t, Mo->N, t);
+    c = 0;
+    for(i = 0; i < L; i++){     // this lower half is done solely to compute the carry (for the LSB of t).
+        uint64_t n1 = T[i] + Acc[i] + c;
+        c = (c & (n1 == T[i])) | (n1 < T[i]);
+        Acc[i] = (uint32_t)n1;
+    }
+    for(; i < LL; i++){    //narrow t := (T + mN) / R
+        uint64_t n1 = T[i] + Acc[i] + c;
+        c = (c & (n1 == T[i])) | (n1 < T[i]);
+        t[i-L] = (uint32_t)n1;
+    }
+
+    if (c || gte(t, Nl)) {
+        sub(t, Nl, t);
     }
 }
 

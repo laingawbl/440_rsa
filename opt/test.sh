@@ -18,11 +18,11 @@ tr -d ":[:blank:]\n" > monty_test_key
 
 echo "executing mm_rsa with that key..."
 echo "encrypting corpus..."
-time -v qemu-arm ./opt_mm -k monty_test_key -i corpus_small -o enc 
+time -v qemu-arm ./opt_mm -k monty_test_key -i corpus -o enc 
 echo "done."
 echo "decrypting..."
 time -v qemu-arm ./opt_mm -k monty_test_key -i enc -o result -d
 echo "done."
 echo "diff between original text and result follows..."
-diff -war corpus_small result
+diff -war corpus result
 
