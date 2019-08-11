@@ -11,12 +11,20 @@
 #include<string.h>
 
 #define Lb 2048
-
+/*
 #define L8 (Lb / 8)
 #define w sizeof(uint32_t)
 #define wb (w * 8)
 #define L (Lb / wb)
-#define LL (2*L)
+#define LL 2*L
+*/
+#define L8 256
+#define w  4
+#define wb 32
+#define L  64
+#define LL 128
+
+#define sel(T,n) ((T[n/wb] >> (n%wb)) & 1)
 
 typedef struct _mm_s {
     uint32_t N[L];     // modulus
@@ -26,16 +34,18 @@ typedef struct _mm_s {
 } Mont;
 
 static inline void mvwide(const uint32_t *U, uint32_t *T){
-    if(U != T) memcpy(T, U, 2*L8);
+    memcpy(T, U, 2*L8);
 }
 
 static inline void mv(const uint32_t *u, uint32_t *t){
-    if(u != t) memcpy(t, u, L8);
+    memcpy(t, u, L8);
 }
 
 /* Exported symbols */
 
 void declaim(const char *msg, const uint32_t *a, int len);
+
+uint32_t iszero(const uint32_t a[L]);
 
 void mm_init(const uint32_t *M, Mont *mm);
 

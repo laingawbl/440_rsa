@@ -97,7 +97,7 @@ rsa_key getkey(FILE *keyfile){
         exit(1);
     }
     for(i=wb-1; i >= 0; i--){
-        if(k.exp[L - 1] >> i & 1) break;
+        if((k.exp[L-1] >> i) & 1) break;
     }
     k.esize = ((L-1)*wb) + i;
 

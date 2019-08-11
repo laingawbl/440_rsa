@@ -3,6 +3,11 @@
 #include<stdlib.h>
 #include<time.h>
 
+void list(const uint32_t *a, int len){
+    declaim("num", a, len);
+
+}
+
 void declaim(const char *msg, const uint32_t *a, int len){
     printf("%s\t", msg);
     int i;
