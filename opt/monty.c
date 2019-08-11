@@ -207,7 +207,7 @@ void mm_redc(const uint32_t T[LL], const Mont *Mo, uint32_t t[L]) {
 
     mult(Acc, Mo->N, Acc);      //Acc = wide   mN
     c = addwide(T, Acc, Acc);   //Acc = wide   T + mN
-    mv(Acc, t);                 //narrow t := (T + mN) / R
+    mv(Acc+L, t);               //narrow t := (T + mN) / Rgit 
 
     if (c || gte(t, Mo->N)) {
         sub(t, Mo->N, t);
