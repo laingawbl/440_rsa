@@ -5,7 +5,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 
-//#define NDEBUG
+#define NDEBUG
 
 typedef struct _rsak_s {
     uint32_t mod[L];
@@ -27,15 +27,11 @@ void rsa_edp(const char *in, char *out, const Mont mm, const rsa_key k){
     uint32_t monty[LL] = {0};
 
     os2ip(in, in_rep);
-    //declaim("in_rep", in_rep, L);
     mm_conv(in_rep, &mm, monty);
-    //declaim("in_mont", monty, L);
 
     mm_exp(monty, k.exp, k.esize, &mm);
-    //declaim("out_mont", monty, L);
 
     mm_redc(monty, &mm, out_rep);
-    //declaim("out_rep", out_rep, L);
     i2osp(out_rep, out);
 }
 

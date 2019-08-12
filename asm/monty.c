@@ -35,34 +35,12 @@ void mult(const uint32_t a[L], const uint32_t b[L], uint32_t T[LL]){
 	
 	for(i = 0; i < L; i++){
 		c = 0;
-		for(j = 0; j < L; j+=8){
+		for(j = 0; j < L; j++){
 		    uint64_t la = (uint64_t) a[i];
 		    uint64_t n;
-
-			n = (uint64_t)Prod[i+j] + (uint64_t)c + (la * (uint64_t)b[j]);
-			Prod[i+j] = (uint32_t) n;
-
-            n = (uint64_t)Prod[i+j+1] + (n >> wb) + (la * (uint64_t)b[j+1]);
-            Prod[i+j+1] = (uint32_t) n;
-
-            n = (uint64_t)Prod[i+j+2] + (n >> wb) + (la * (uint64_t)b[j+2]);
-            Prod[i+j+2] = (uint32_t) n;
-
-            n = (uint64_t)Prod[i+j+3] + (n >> wb) + (la * (uint64_t)b[j+3]);
-            Prod[i+j+3] = (uint32_t) n;
-
-            n = (uint64_t)Prod[i+j+4] + (n >> wb) + (la * (uint64_t)b[j+4]);
-            Prod[i+j+4] = (uint32_t) n;
-
-            n = (uint64_t)Prod[i+j+5] + (n >> wb) + (la * (uint64_t)b[j+5]);
-            Prod[i+j+5] = (uint32_t) n;
-
-            n = (uint64_t)Prod[i+j+6] + (n >> wb) + (la * (uint64_t)b[j+6]);
-            Prod[i+j+6] = (uint32_t) n;
-
-            n = (uint64_t)Prod[i+j+7] + (n >> wb) + (la * (uint64_t)b[j+7]);
-            Prod[i+j+7] = (uint32_t) n;
-            c = (uint32_t)(n >> wb);
+				n = (uint64_t)Prod[i+j] + (uint64_t)c + (la * (uint64_t)b[j]);
+				Prod[i+j] = (uint32_t) n;
+        c = (uint32_t)(n >> wb);
 		}
 		Prod[i+L] = c;
 	}

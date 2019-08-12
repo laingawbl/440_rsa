@@ -1,0 +1,95 @@
+	.global	mm_mult
+	.syntax unified
+	.arm
+	.type	mm_mult, %function
+mm_mult:
+	@ args = 0, pretend = 0, frame = 1036
+	@ frame_needed = 0, uses_anonymous_args = 0
+	push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+	mov	r4, r0
+	sub	r5, r1, #4
+	mov	r9, r4
+	sub	sp, sp, #1040
+	mov	fp, r2
+	
+	add	r0, sp, #524
+	mov	r2, #512
+	mov	r1, #0
+	bl	memset
+	
+	add	r3, sp, #1024
+	add	r3, r3, #12
+	sub	r4, r4, #4
+	add	ip, sp, #780
+	str	r3, [sp, #4]
+	
+.L106:								@ hand-modified
+	ldr	lr, [r4, #4]!
+	mov	r2, r5
+	sub	r3, ip, #256
+	eor	r0, r0
+	mov	r8, r4
+	
+.L107:
+	ldr	r4, [r2, #4]
+	eor	r1, r1
+	umlal	r0, r1, lr, r4
+	ldr	r7, [r3]
+	adds  r7, r0, r7
+	str	r7, [r3], #4
+	adc	r0, r1, #0
+	
+	ldr	r4, [r2, #8]
+	eor	r1, r1
+	umlal	r0, r1, lr, r4
+	ldr	r7, [r3]
+	adds  r7, r0, r7
+	str	r7, [r3], #4
+	adc	r0, r1, #0
+	
+	ldr	r4, [r2, #12]
+	eor	r1, r1
+	umlal	r0, r1, lr, r4
+	ldr	r7, [r3]
+	adds  r7, r0, r7
+	str	r7, [r3], #4
+	adc	r0, r1, #0
+	
+	ldr	r4, [r2, #16]!
+	eor	r1, r1
+	umlal	r0, r1, lr, r4
+	ldr	r7, [r3]
+	adds  r7, r0, r7
+	str	r7, [r3], #4
+	adc	r0, r1, #0
+	
+	cmp	ip, r3
+	bne	.L107
+	
+	ldr	r3, [sp, #4]
+	str	r0, [ip], #4
+	cmp	ip, r3
+	mov	r4, r8
+	bne	.L106
+	
+	add	r3, sp, #12
+	mov	r0, r3
+	add	r1, sp, #524
+	mov	r2, #512
+	str	r3, [sp, #4]
+	bl	memcpy
+	
+	mov	r2, r9
+	mov	r1, fp
+	ldr	r0, [sp, #4]
+	bl	mm_redc
+
+	add	sp, sp, #1040
+	@ sp needed
+	pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+.L114:
+	.align	2
+.L113:
+	.word	__stack_chk_guard
+	.size	mm_mult, .-mm_mult
+	.align	2

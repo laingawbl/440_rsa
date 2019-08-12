@@ -74,4 +74,4 @@ all the function calls in mm_redc exept for memcpy have been inlined by
    95% of the time is from mm_exp(), and I can't optimise it or its
    components any further (mm_redc() or mult(), for reasons above). so
    it's on to assembly!
-## asm
+

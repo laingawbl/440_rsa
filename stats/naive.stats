@@ -1,0 +1,383 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls   s/call   s/call  name    
+ 39.95     71.84    71.84 377695010     0.00     0.00  gte
+ 29.76    125.34    53.51   522491     0.00     0.00  mul_mo
+ 12.46    147.75    22.41                             __gnu_mcount_nc
+  8.44    162.92    15.17                             writev
+  5.04    171.98     9.07   350913     0.00     0.00  highbit
+  4.14    179.43     7.45                             __profile_frequency
+  0.07    179.55     0.12                             memcpy
+  0.05    179.64     0.09     1370     0.00     0.10  spow_nn
+  0.03    179.68     0.05                             memset
+  0.02    179.71     0.03   348170     0.00     0.00  oddp
+  0.02    179.74     0.03                             strcasecmp_l
+  0.01    179.76     0.02   172639     0.00     0.00  subws
+  0.01    179.77     0.02       46     0.00     0.00  sub_mo
+  0.01    179.78     0.01   349369     0.00     0.00  half
+  0.01    179.79     0.01     1923     0.00     0.00  evenp
+  0.00    179.80     0.01     1952     0.00     0.00  addws
+  0.00    179.80     0.01                             memmove
+  0.00    179.80     0.00     3697     0.00     0.00  zero
+  0.00    179.80     0.00     2892     0.00     0.00  copy
+  0.00    179.80     0.00     2560     0.00     0.00  equ
+  0.00    179.80     0.00     1782     0.00     0.00  subw
+  0.00    179.80     0.00     1395     0.00     0.00  zerop
+  0.00    179.80     0.00     1375     0.00     0.00  load
+  0.00    179.80     0.00      724     0.00     0.17  rabin_test
+  0.00    179.80     0.00      138     0.00     0.00  i2osp
+  0.00    179.80     0.00      138     0.00     0.00  os2ip
+  0.00    179.80     0.00       69     0.00     0.10  rsa_dec
+  0.00    179.80     0.00       69     0.00     0.10  rsa_enc
+  0.00    179.80     0.00       23     0.00     0.00  qdiv
+  0.00    179.80     0.00        8     0.00     0.00  set
+  0.00    179.80     0.00        4     0.00    30.26  load_miller_rabin
+  0.00    179.80     0.00        4     0.00     0.00  mul
+  0.00    179.80     0.00        2     0.00     0.01  euclid_inv
+  0.00    179.80     0.00        1     0.00   121.07  genkeys
+  0.00    179.80     0.00        1     0.00     0.00  main
+  0.00    179.80     0.00        1     0.00     0.00  print_num
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
+
+Copyright (C) 2012-2015 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 2 byte(s) for 0.01% of 179.80 seconds
+
+index % time    self  children    called     name
+                                                 <spontaneous>
+[1]     74.8    0.00  134.58                 msgtest [1]
+                0.00  121.07       1/1           genkeys [4]
+                0.00    6.76      69/69          rsa_enc [13]
+                0.00    6.76      69/69          rsa_dec [12]
+                0.00    0.00       1/350913      highbit [10]
+                0.00    0.00       1/1           print_num [37]
+-----------------------------------------------
+                0.00    6.75      69/1370        rsa_enc [13]
+                0.00    6.75      69/1370        rsa_dec [12]
+                0.08  120.55    1232/1370        rabin_test [6]
+[2]     74.6    0.09  134.05    1370         spow_nn [2]
+               53.35   71.62  520943/522491      mul_mo [3]
+                9.03    0.00  349540/350913      highbit [10]
+                0.03    0.00  348170/348170      oddp [16]
+                0.01    0.00  171403/172639      subws [20]
+                0.01    0.00  348170/349369      half [21]
+                0.00    0.00    2740/2892        copy [28]
+                0.00    0.00    1370/1375        load [32]
+                0.00    0.00    1370/1395        zerop [31]
+-----------------------------------------------
+                0.00    0.01      46/522491      euclid_inv [18]
+                0.15    0.21    1502/522491      rabin_test [6]
+               53.35   71.62  520943/522491      spow_nn [2]
+[3]     69.7   53.51   71.84  522491         mul_mo [3]
+               71.84    0.00 377692350/377695010     gte [7]
+-----------------------------------------------
+                0.00  121.07       1/1           msgtest [1]
+[4]     67.3    0.00  121.07       1         genkeys [4]
+                0.00  121.04       4/4           load_miller_rabin [5]
+                0.00    0.03       2/2           euclid_inv [18]
+                0.00    0.00       4/172639      subws [20]
+                0.00    0.00       9/3697        zero [27]
+                0.00    0.00       4/4           mul [35]
+                0.00    0.00       4/2892        copy [28]
+                0.00    0.00       1/1375        load [32]
+-----------------------------------------------
+                0.00  121.04       4/4           genkeys [4]
+[5]     67.3    0.00  121.04       4         load_miller_rabin [5]
+                0.00  121.04     724/724         rabin_test [6]
+                0.00    0.00     720/1952        addws [23]
+                0.00    0.00       8/8           set [34]
+                0.00    0.00       4/3697        zero [27]
+                0.00    0.00       4/2892        copy [28]
+-----------------------------------------------
+                0.00  121.04     724/724         load_miller_rabin [5]
+[6]     67.3    0.00  121.04     724         rabin_test [6]
+                0.08  120.55    1232/1370        spow_nn [2]
+                0.15    0.21    1502/522491      mul_mo [3]
+                0.03    0.00    1232/350913      highbit [10]
+                0.01    0.00    1923/1923        evenp [22]
+                0.00    0.00    1232/1952        addws [23]
+                0.00    0.00    1232/377695010     gte [7]
+                0.00    0.00    1232/172639      subws [20]
+                0.00    0.00    1199/349369      half [21]
+                0.00    0.00    3404/3697        zero [27]
+                0.00    0.00    2560/2560        equ [29]
+                0.00    0.00    1782/1782        subw [30]
+-----------------------------------------------
+                0.00    0.00      46/377695010     sub_mo [19]
+                0.00    0.00      69/377695010     rsa_enc [13]
+                0.00    0.00      69/377695010     rsa_dec [12]
+                0.00    0.00    1232/377695010     rabin_test [6]
+                0.00    0.00    1244/377695010     qdiv [26]
+               71.84    0.00 377692350/377695010     mul_mo [3]
+[7]     40.0   71.84    0.00 377695010         gte [7]
+-----------------------------------------------
+                                                 <spontaneous>
+[8]     12.5   22.41    0.00                 __gnu_mcount_nc [8]
+-----------------------------------------------
+                                                 <spontaneous>
+[9]      8.4   15.17    0.00                 writev [9]
+-----------------------------------------------
+                0.00    0.00       1/350913      msgtest [1]
+                0.00    0.00       2/350913      euclid_inv [18]
+                0.00    0.00     138/350913      i2osp [25]
+                0.03    0.00    1232/350913      rabin_test [6]
+                9.03    0.00  349540/350913      spow_nn [2]
+[10]     5.0    9.07    0.00  350913         highbit [10]
+-----------------------------------------------
+                                                 <spontaneous>
+[11]     4.1    7.45    0.00                 __profile_frequency [11]
+-----------------------------------------------
+                0.00    6.76      69/69          msgtest [1]
+[12]     3.8    0.00    6.76      69         rsa_dec [12]
+                0.00    6.75      69/1370        spow_nn [2]
+                0.00    0.00      69/138         i2osp [25]
+                0.00    0.00      69/377695010     gte [7]
+                0.00    0.00     138/3697        zero [27]
+                0.00    0.00      69/138         os2ip [33]
+-----------------------------------------------
+                0.00    6.76      69/69          msgtest [1]
+[13]     3.8    0.00    6.76      69         rsa_enc [13]
+                0.00    6.75      69/1370        spow_nn [2]
+                0.00    0.00      69/138         i2osp [25]
+                0.00    0.00      69/377695010     gte [7]
+                0.00    0.00     138/3697        zero [27]
+                0.00    0.00      69/138         os2ip [33]
+-----------------------------------------------
+                                                 <spontaneous>
+[14]     0.1    0.12    0.00                 memcpy [14]
+-----------------------------------------------
+                                                 <spontaneous>
+[15]     0.0    0.05    0.00                 memset [15]
+-----------------------------------------------
+                0.03    0.00  348170/348170      spow_nn [2]
+[16]     0.0    0.03    0.00  348170         oddp [16]
+-----------------------------------------------
+                                                 <spontaneous>
+[17]     0.0    0.03    0.00                 strcasecmp_l [17]
+-----------------------------------------------
+                0.00    0.03       2/2           genkeys [4]
+[18]     0.0    0.00    0.03       2         euclid_inv [18]
+                0.02    0.00      46/46          sub_mo [19]
+                0.00    0.01      46/522491      mul_mo [3]
+                0.00    0.00      23/23          qdiv [26]
+                0.00    0.00       2/350913      highbit [10]
+                0.00    0.00     144/2892        copy [28]
+                0.00    0.00      25/1395        zerop [31]
+                0.00    0.00       4/1375        load [32]
+                0.00    0.00       4/3697        zero [27]
+-----------------------------------------------
+                0.02    0.00      46/46          euclid_inv [18]
+[19]     0.0    0.02    0.00      46         sub_mo [19]
+                0.00    0.00      46/377695010     gte [7]
+-----------------------------------------------
+                0.00    0.00       4/172639      genkeys [4]
+                0.00    0.00    1232/172639      rabin_test [6]
+                0.01    0.00  171403/172639      spow_nn [2]
+[20]     0.0    0.02    0.00  172639         subws [20]
+-----------------------------------------------
+                0.00    0.00    1199/349369      rabin_test [6]
+                0.01    0.00  348170/349369      spow_nn [2]
+[21]     0.0    0.01    0.00  349369         half [21]
+-----------------------------------------------
+                0.01    0.00    1923/1923        rabin_test [6]
+[22]     0.0    0.01    0.00    1923         evenp [22]
+-----------------------------------------------
+                0.00    0.00     720/1952        load_miller_rabin [5]
+                0.00    0.00    1232/1952        rabin_test [6]
+[23]     0.0    0.01    0.00    1952         addws [23]
+-----------------------------------------------
+                                                 <spontaneous>
+[24]     0.0    0.01    0.00                 memmove [24]
+-----------------------------------------------
+                0.00    0.00      69/138         rsa_enc [13]
+                0.00    0.00      69/138         rsa_dec [12]
+[25]     0.0    0.00    0.00     138         i2osp [25]
+                0.00    0.00     138/350913      highbit [10]
+-----------------------------------------------
+                0.00    0.00      23/23          euclid_inv [18]
+[26]     0.0    0.00    0.00      23         qdiv [26]
+                0.00    0.00    1244/377695010     gte [7]
+-----------------------------------------------
+                0.00    0.00       4/3697        euclid_inv [18]
+                0.00    0.00       4/3697        load_miller_rabin [5]
+                0.00    0.00       9/3697        genkeys [4]
+                0.00    0.00     138/3697        rsa_enc [13]
+                0.00    0.00     138/3697        rsa_dec [12]
+                0.00    0.00    3404/3697        rabin_test [6]
+[27]     0.0    0.00    0.00    3697         zero [27]
+-----------------------------------------------
+                0.00    0.00       4/2892        load_miller_rabin [5]
+                0.00    0.00       4/2892        genkeys [4]
+                0.00    0.00     144/2892        euclid_inv [18]
+                0.00    0.00    2740/2892        spow_nn [2]
+[28]     0.0    0.00    0.00    2892         copy [28]
+-----------------------------------------------
+                0.00    0.00    2560/2560        rabin_test [6]
+[29]     0.0    0.00    0.00    2560         equ [29]
+-----------------------------------------------
+                0.00    0.00    1782/1782        rabin_test [6]
+[30]     0.0    0.00    0.00    1782         subw [30]
+-----------------------------------------------
+                0.00    0.00      25/1395        euclid_inv [18]
+                0.00    0.00    1370/1395        spow_nn [2]
+[31]     0.0    0.00    0.00    1395         zerop [31]
+-----------------------------------------------
+                0.00    0.00       1/1375        genkeys [4]
+                0.00    0.00       4/1375        euclid_inv [18]
+                0.00    0.00    1370/1375        spow_nn [2]
+[32]     0.0    0.00    0.00    1375         load [32]
+-----------------------------------------------
+                0.00    0.00      69/138         rsa_enc [13]
+                0.00    0.00      69/138         rsa_dec [12]
+[33]     0.0    0.00    0.00     138         os2ip [33]
+-----------------------------------------------
+                0.00    0.00       8/8           load_miller_rabin [5]
+[34]     0.0    0.00    0.00       8         set [34]
+-----------------------------------------------
+                0.00    0.00       4/4           genkeys [4]
+[35]     0.0    0.00    0.00       4         mul [35]
+-----------------------------------------------
+                0.00    0.00       1/1           __libc_start_main [714]
+[36]     0.0    0.00    0.00       1         main [36]
+-----------------------------------------------
+                0.00    0.00       1/1           msgtest [1]
+[37]     0.0    0.00    0.00       1         print_num [37]
+-----------------------------------------------
+
+ This table describes the call tree of the program, and was sorted by
+ the total amount of time spent in each function and its children.
+
+ Each entry in this table consists of several lines.  The line with the
+ index number at the left hand margin lists the current function.
+ The lines above it list the functions that called this function,
+ and the lines below it list the functions this one called.
+ This line lists:
+     index	A unique number given to each element of the table.
+		Index numbers are sorted numerically.
+		The index number is printed next to every function name so
+		it is easier to look up where the function is in the table.
+
+     % time	This is the percentage of the `total' time that was spent
+		in this function and its children.  Note that due to
+		different viewpoints, functions excluded by options, etc,
+		these numbers will NOT add up to 100%.
+
+     self	This is the total amount of time spent in this function.
+
+     children	This is the total amount of time propagated into this
+		function by its children.
+
+     called	This is the number of times the function was called.
+		If the function called itself recursively, the number
+		only includes non-recursive calls, and is followed by
+		a `+' and the number of recursive calls.
+
+     name	The name of the current function.  The index number is
+		printed after it.  If the function is a member of a
+		cycle, the cycle number is printed between the
+		function's name and the index number.
+
+
+ For the function's parents, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the function into this parent.
+
+     children	This is the amount of time that was propagated from
+		the function's children into this parent.
+
+     called	This is the number of times this parent called the
+		function `/' the total number of times the function
+		was called.  Recursive calls to the function are not
+		included in the number after the `/'.
+
+     name	This is the name of the parent.  The parent's index
+		number is printed after it.  If the parent is a
+		member of a cycle, the cycle number is printed between
+		the name and the index number.
+
+ If the parents of the function cannot be determined, the word
+ `<spontaneous>' is printed in the `name' field, and all the other
+ fields are blank.
+
+ For the function's children, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the child into the function.
+
+     children	This is the amount of time that was propagated from the
+		child's children to the function.
+
+     called	This is the number of times the function called
+		this child `/' the total number of times the child
+		was called.  Recursive calls by the child are not
+		listed in the number after the `/'.
+
+     name	This is the name of the child.  The child's index
+		number is printed after it.  If the child is a
+		member of a cycle, the cycle number is printed
+		between the name and the index number.
+
+ If there are any cycles (circles) in the call graph, there is an
+ entry for the cycle-as-a-whole.  This entry shows who called the
+ cycle (as parents) and the members of the cycle (as children.)
+ The `+' recursive calls entry shows the number of function calls that
+ were internal to the cycle, and the calls entry for each member shows,
+ for that member, how many times it was called from other members of
+ the cycle.
+
+Copyright (C) 2012-2015 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Index by function name
+
+   [8] __gnu_mcount_nc        [32] load                    [6] rabin_test
+  [11] __profile_frequency     [5] load_miller_rabin      [12] rsa_dec
+  [23] addws                  [36] main                   [13] rsa_enc
+  [28] copy                   [14] memcpy                 [34] set
+  [29] equ                    [24] memmove                 [2] spow_nn
+  [18] euclid_inv             [15] memset                 [17] strcasecmp_l
+  [22] evenp                  [35] mul                    [19] sub_mo
+   [4] genkeys                 [3] mul_mo                 [30] subw
+   [7] gte                    [16] oddp                   [20] subws
+  [21] half                   [33] os2ip                   [9] writev
+  [10] highbit                [37] print_num              [27] zero
+  [25] i2osp                  [26] qdiv                   [31] zerop

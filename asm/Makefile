@@ -1,9 +1,9 @@
-CC=arm-linux-gnueabi-gcc
+CC=arm-linux-gnueabi-gcc -march=armv5
 CFLAGS=-I. -O3 -static -pg
 DEPS=monty.h
 
-%.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS)
+%.o: %.s $(DEPS)
+	$(CC) -o $@ -c $< $(CFLAGS)
 
 asm_mm: main.o monty.o 
 	$(CC) -o $@ $^ $(CFLAGS)
@@ -11,4 +11,4 @@ asm_mm: main.o monty.o
 .PHONY: clean
 
 clean:
-	rm *.o opt_mm
+	rm *.o asm_mm
