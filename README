@@ -1,0 +1,15 @@
+the contents of src/ are as follows:
+remarks.md: various notes from development
+func-naive: naive, non-Montgomery arithmetic implementation (buggy, slow!)
+func-mm:    functional Montgomery implementation
+opt:        software optimised implementation
+asm:        optimised implementation, with handwritten assembly at bottleneck
+stats:      gprof stats files (plaintext) from various steps of development
+
+to run the tests in each of the code folders, test.sh and test_gmon.sh, you will
+need:
+awk
+gprof
+openssl
+qemu-arm
+arm-linux-gnueabi-gcc (to build)
